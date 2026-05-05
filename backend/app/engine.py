@@ -31,6 +31,7 @@ class RAGEngine:
         self._cache_ttl = 300
         self._sync_engine = None
         self._indexing_task: Optional[asyncio.Task] = None
+        self._retriever = None  # Cache del retriever
 
     def _get_sync_engine(self):
         if self._sync_engine is None:
@@ -105,6 +106,7 @@ class RAGEngine:
                     continue
 
             self._query_cache.clear()
+            self._retriever = None  # Limpiar retriever cacheado después de indexar
             return len(chunks)
         except Exception as e:
             self.indexing_error = str(e)
@@ -127,28 +129,31 @@ class RAGEngine:
         return {"status": "started"}
 
     async def query(self, question: str):
-        """Consulta fusionada: Filtro de duplicados + Post-procesamiento"""
-        start_time = time.time()
+        """Consulta optimizada: búsqueda rápida + ranking inteligente"""
         cache_key = question.lower().strip()
         current_time = time.time()
 
+        # Verificar cache
         if cache_key in self._query_cache:
             res, ts = self._query_cache[cache_key]
             if current_time - ts < self._cache_ttl:
                 return res
 
-        retriever = self.vector_store.as_retriever(
-            search_type="mmr",
-            search_kwargs={"k": 15, "fetch_k": 35, "lambda_mult": 0.7}
-        )
+        # Usar retriever cacheado (similarity es mucho más rápido que MMR)
+        if self._retriever is None:
+            self._retriever = self.vector_store.as_retriever(
+                search_type="similarity",
+                search_kwargs={"k": 10}
+            )
 
         try:
             context_docs = await asyncio.wait_for(
-                asyncio.to_thread(retriever.invoke, question), timeout=6.0
+                asyncio.to_thread(self._retriever.invoke, question), timeout=8.0
             )
         except asyncio.TimeoutError:
             return {"answer": "Timeout en búsqueda.", "sources": []}
 
+        # Agrupar documentos por fuente
         docs_by_source = {}
         for doc in context_docs:
             source = doc.metadata.get('source', 'unknown')
@@ -162,43 +167,35 @@ class RAGEngine:
 
         for source, contents in docs_by_source.items():
             full_text_raw = ' '.join(contents)
-            clean_text = full_text_raw.replace('\x00', '')[:1000]
-
+            clean_text = full_text_raw.replace('\x00', '')[:800]
             rel_path = source.replace(base_path, "").lstrip('/')
-
             context_parts.append(f"ARCHIVO ORIGEN: {rel_path}\nCONTENIDO:\n{clean_text}")
 
         context_text = "\n\n---\n\n".join(context_parts)
 
         prompt = ChatPromptTemplate.from_template(
-            """
-            Eres un motor de selección de personal estricto. Tu salida debe contener ÚNICAMENTE los 5 mejores candidatos.
+            """Eres un motor de selección de personal. Retorna exactamente los 5 mejores candidatos.
 
-            INSTRUCCIONES DE SALIDA:
-            1. Prohibido listar candidatos que no estén en el Top 5.
-            2. No escribas introducciones, ni análisis previos, ni conclusiones finales.
-            3. Si encuentras más de 5 candidatos interesantes, descarta los menos relevantes y quédate SOLO con los 5 mejores.
+INSTRUCCIONES:
+1. Solo los 5 mejores candidatos
+2. Formato estricto por candidato
 
-            FORMATO POR CANDIDATO (Repetir exactamente 5 veces):
-            ### [Nombre y Apellidos]
-            [BOTON_CV:{{filename}}]
-            **Por qué encaja:** [Explica por qué encaja técnica y culturalmente] <br /> <br />
-            **Experiencia laboral:** [Años exp.] | [Cargo actual] | [Idiomas] <br />
-            **Stack Técnico:** [Tecnologías mencionadas en el CV] <br />
-            **Educación:** [Grado/Máster más alto] <br />
+FORMATO POR CANDIDATO:
+### Nombre Completo
+[BOTON_CV:{{filename}}]
+**Por qué encaja:** [Razón breve técnica y cultural]
+**Experiencia:** [Años] años | [Cargo actual] | [Idiomas]
+**Skills:** [Tecnologías clave]
+**Educación:** [Titulación más alta]
 
-            ---
-            DATOS DE LOS CVS:
-            {context}
+---
 
-            SOLICITUD: {question}
+DATOS DE LOS CVS:
+{context}
 
-            IMPORTANTE: En {{filename}} pon la ruta exacta que aparece en "ARCHIVO ORIGEN".
+SOLICITUD: {question}
 
-            INSTRUCCIONES DE EXTRACCIÓN:
-            1. EDUCACIÓN: Busca palabras como "Grado", "Licenciatura", "Formación Profesional" o "Educación Secundaria". Suele estar después de la experiencia laboral.
-            2. Si no lo encuentras a la primera, lee todo el texto proporcionado antes de poner 'No especificado'.
-            """
+IMPORTANTE: En {{filename}} pon la ruta exacta que aparece en "ARCHIVO ORIGEN"."""
         )
 
         chain = prompt | self.llm
@@ -207,8 +204,10 @@ class RAGEngine:
             response = await chain.ainvoke({"context": context_text, "question": question})
             answer = str(response.content)
 
+            # Limpiar placeholders
             answer = answer.replace('[Nombre Candidato]', '').replace('[Nombre]', '')
 
+            # Procesar duplicados
             seen_files = set()
             cleaned_lines = []
             skip_section = False
@@ -232,7 +231,7 @@ class RAGEngine:
             return result
 
         except Exception as e:
-            return {"answer": f"Error: {str(e)}", "sources": []}
+            return {"answer": f"Error en búsqueda: {str(e)}", "sources": []}
 
     # --- Métodos de utilidad de engine.py ---
     async def get_vector_count(self):
@@ -284,6 +283,7 @@ class RAGEngine:
 
     def clear_cache(self):
         self._query_cache.clear()
+        self._retriever = None  # También limpiar retriever cacheado
         return {"status": "cache_cleared"}
 
 rag_engine = RAGEngine()
