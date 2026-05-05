@@ -32,8 +32,9 @@ El flujo de trabajo sigue el estándar RAG para garantizar respuestas precisas:
 1. **Indexación:** Los archivos PDF se cargan mediante el File Manager y se almacenan en `/storage/CVs`.
 2. **Fragmentación:** `RecursiveCharacterTextSplitter` (1500 chars, 150 overlap) mantiene contexto en cada fragmento.
 3. **Embeddings & Storage:** Vectores generados con intfloat/multilingual-e5-small y almacenados en PGVector.
-4. **Búsqueda:** Recuperación MMR (Maximum Marginal Relevance) con filtrado de duplicados.
+4. **Búsqueda:** Similarity search (optimizado, ~6-8 segundos) para recuperar los CVs más relevantes.
 5. **Ranking:** LLM genera ranking de 5 mejores candidatos con análisis detallado.
+6. **Caching:** Sistema de caché para consultas repetidas (TTL: 5 minutos).
 
 ---
 
