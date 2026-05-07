@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     """ CVs directory """
     PDF_PATH: str = "/storage/CVs"
 
+    """ Authentication """
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+    ALGORITHM = "HS256"
+    ACCESS_TOKEN_EXPIRE_HOURS = 1
+
     class Config:
         env_file = ".env"
         extra = "ignore"

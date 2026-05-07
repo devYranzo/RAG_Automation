@@ -1,22 +1,26 @@
-# Servidor Web y API
+# Web & API Server
 fastapi
 uvicorn
 python-dotenv
 python-multipart
 
-# LangChain y Orquestación
+# Authentication
+python-jose
+passlib[bcrypt]
+
+# LangChain & Orquestation
 langchain
 langchain-community
 langchain-core
 langchain-google-genai
 langchain-huggingface
 
-# Base de Datos (PostgreSQL + pgvector)
+# Database (Postgres + pgvector)
 langchain-postgres
 psycopg[binary]
 pgvector
 
-# Procesamiento de Documentos y Embeddings
+# Documents & Embeddings processor
 pypdf
 sentence-transformers
 protobuf
