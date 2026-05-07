@@ -1,5 +1,5 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import api from '@/services/api';
+import indexService from '@/services/index.service';
 
 export function useMotorStatus() {
   const motorStatus = ref({
@@ -23,7 +23,7 @@ export function useMotorStatus() {
 
   const checkStatus = async () => {
     try {
-      const data = await api.getStatus();
+      const data = await indexService.getStatus();
 
       motorStatus.value = {
         ...motorStatus.value,
@@ -68,7 +68,7 @@ export function useMotorStatus() {
     progreso.value = 0;
 
     try {
-      await api.startIngest();
+      await indexService.startIngest();
       iniciarIntervalo();
     } catch (error) {
       loadingIngest.value = false;
@@ -90,7 +90,7 @@ export function useMotorStatus() {
     motorStatus.value.is_ready = false;
 
     try {
-      await api.reindex();
+      await indexService.reindex();
       iniciarIntervalo();
     } catch (error) {
       loadingIngest.value = false;

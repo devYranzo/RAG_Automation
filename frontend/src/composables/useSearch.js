@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import api from '@/services/api';
+import searchService from '@/services/search.service';
 
 export function useSearch(isReady) {
   const query = ref('');
@@ -16,7 +16,7 @@ export function useSearch(isReady) {
     loading.value = true;
     respuesta.value = '';
     try {
-      const res = await api.buscarCandidatos(query.value);
+      const res = await searchService.buscarCandidatos(query.value);
       respuesta.value = res.data.answer;
     } catch (error) {
       alert('Error en la búsqueda. El servidor podría estar saturado.');

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Header from './components/Header.vue';
+import { useRoute } from 'vue-router';
 import { useMotorStatus } from '@/composables/useMotorStatus';
 import { useTheme } from '@/composables/useTheme';
 
+const route = useRoute();
 const { isReady, encenderMotor, reindexar } = useMotorStatus();
 const { isDark, toggleTheme } = useTheme();
 </script>
@@ -10,6 +12,7 @@ const { isDark, toggleTheme } = useTheme();
 <template>
   <main class="container">
     <Header
+      v-if="route.path !== '/login'"
       :is-ready="isReady"
       :is-dark="isDark"
       @encender="encenderMotor"

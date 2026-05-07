@@ -1,19 +1,29 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import api from '@/services/api';
+import { useFileManager } from '@/composables/useFileManager';
 
-const selectedFile = ref(null);
-const isUploading = ref(false);
-const fileInput = ref(null);
-const selectedFolder = ref('General');
-const newFolderName = ref('');
-const isCreatingFolder = ref(false);
-const createFolderMode = ref(false);
-const showUploadModal = ref(false);
+const {
+  fileTree,
+  folderList,
+  selectedFile,
+  selectedFolder,
+  isUploading,
+  isCreatingFolder,
+  fetchFolders,
+  fetchFiles,
+  uploadFile,
+  createFolder,
+  openPDF,
+} = useFileManager();
 
 const onFileSelected = (event) => {
   selectedFile.value = event.target.files[0];
 };
+
+const fileInput = ref(null);
+const newFolderName = ref('');
+const createFolderMode = ref(false);
+const showUploadModal = ref(false);
 
 const openUploadModal = () => {
   showUploadModal.value = true;
@@ -32,22 +42,18 @@ const resetUploadForm = () => {
   if (fileInput.value) fileInput.value.value = '';
 };
 
-const uploadFile = async () => {
+const handleUploadFile = async () => {
   if (!selectedFile.value) {
     alert('Por favor, selecciona un archivo.');
     return;
   }
 
-  isUploading.value = true;
   try {
-    await api.uploadFile(selectedFile.value, selectedFolder.value);
-    await fetchFiles();
+    await uploadFile(selectedFile.value, selectedFolder.value);
     closeUploadModal();
     alert('¡Archivo subido con éxito!');
   } catch (error) {
     alert('Error al subir el archivo.');
-  } finally {
-    isUploading.value = false;
   }
 };
 
@@ -56,44 +62,24 @@ const toggleCreateFolderMode = () => {
   newFolderName.value = '';
 };
 
-const createNewFolder = async () => {
+const handleCreateNewFolder = async () => {
   if (!newFolderName.value.trim()) {
     alert('Por favor, ingresa un nombre para la carpeta.');
     return;
   }
 
-  isCreatingFolder.value = true;
   try {
-    await api.createFolder(newFolderName.value);
-    await fetchFolders(); // Actualizar lista de carpetas
-    selectedFolder.value = newFolderName.value;
+    const result = await createFolder(newFolderName.value);
+    selectedFolder.value = result.folderName;
     newFolderName.value = '';
     createFolderMode.value = false;
     alert('¡Carpeta creada con éxito!');
   } catch (error) {
     alert('Error al crear la carpeta.');
-  } finally {
-    isCreatingFolder.value = false;
   }
 };
 
 // List directories and CVs
-const fileTree = ref({});
-const folderList = ref([]);
-
-const fetchFolders = async () => {
-  try {
-    folderList.value = await api.getFolders();
-  } catch (error) {
-    console.error('Error al obtener carpetas:', error);
-  }
-};
-
-const fetchFiles = async () => {
-  const data = await api.listFiles();
-  fileTree.value = data;
-};
-
 const slugify = (text) => {
   return text
     .toString()
@@ -101,18 +87,6 @@ const slugify = (text) => {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[^\w-]+/g, '');
-};
-
-const openPDF = (folder, file) => {
-  const relativePath = folder === 'General' ? file : `${folder}/${file}`;
-
-  const encodedPath = relativePath
-    .split('/')
-    .map((part) => encodeURIComponent(part))
-    .join('/');
-
-  const url = `${api.baseURL}/pdfs/${encodedPath}`;
-  window.open(url, '_blank');
 };
 
 onMounted(() => {
@@ -237,7 +211,7 @@ onMounted(() => {
                   v-if="createFolderMode"
                   class="btn btn-success"
                   type="button"
-                  @click="createNewFolder"
+                  @click="handleCreateNewFolder"
                   :disabled="isCreatingFolder"
                 >
                   <span
@@ -280,7 +254,7 @@ onMounted(() => {
             <button
               type="button"
               class="btn btn-primary"
-              @click="uploadFile"
+              @click="handleUploadFile"
               :disabled="!selectedFile || isUploading || isCreatingFolder"
             >
               <span v-if="isUploading" class="spinner-border spinner-border-sm me-2"></span>

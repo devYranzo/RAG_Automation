@@ -1,6 +1,6 @@
 <script setup>
 import MarkdownIt from 'markdown-it';
-import api from '@/services/api';
+import searchService from '@/services/search.service';
 
 const md = new MarkdownIt({ html: true, linkify: true });
 
@@ -12,7 +12,7 @@ defineProps({
 defineEmits(['copiar']);
 
 window.abrirArchivoCV = (ruta) => {
-  const url = api.getPdfUrl(ruta);
+  const url = searchService.getPdfUrl(ruta);
   window.open(url, '_blank');
 };
 
