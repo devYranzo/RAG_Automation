@@ -15,8 +15,8 @@ class Settings(BaseSettings):
 
     """ Authentication """
     SECRET_KEY: str = os.getenv("SECRET_KEY", "")
-    ALGORITHM = "HS256"
-    ACCESS_TOKEN_EXPIRE_HOURS = 1
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_HOURS: int = 1
 
     class Config:
         env_file = ".env"

@@ -1,10 +1,23 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 class LoginRequest(BaseModel):
-    username: str
+    email: str
     password: str
 
 
 class RegisterRequest(BaseModel):
-    username: str
+    email: str
     password: str
+    first_name: str | None = None
+    last_name: str | None = None
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    first_name: str | None
+    last_name: str | None
+    is_active: bool
+
+    class Config:
+        from_attributes = True

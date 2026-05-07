@@ -1,12 +1,21 @@
 <script setup>
-import { ref } from 'vue';
+import { useAuth } from '@/composables/useAuth';
+import { reactive } from 'vue';
 
-const email = ref('');
-const password = ref('');
+const { login, loading, error } = useAuth();
 
-async function login() {
-  console.log('Logging in with:', email.value);
-}
+const form = reactive({
+  email: '',
+  password: '',
+});
+
+const handleLogin = async () => {
+  try {
+    await login(form);
+  } catch (e) {
+    console.error(e);
+  }
+};
 </script>
 
 <template>
@@ -34,7 +43,7 @@ async function login() {
           <div class="card-body p-4 p-lg-5">
             <h4 class="text-secondary mb-4">Welcome Back</h4>
 
-            <form @submit.prevent="login">
+            <form @submit.prevent="handleLogin">
               <div class="mb-3">
                 <label for="email" class="form-label small fw-bold">Email address</label>
                 <div class="input-group">
@@ -44,7 +53,7 @@ async function login() {
                   <input
                     type="email"
                     class="form-control border-start-0"
-                    v-model="email"
+                    v-model="form.email"
                     id="email"
                     placeholder="your@account.com"
                     required
@@ -61,7 +70,7 @@ async function login() {
                   </span>
                   <input
                     type="password"
-                    v-model="password"
+                    v-model="form.password"
                     class="form-control border-start-0"
                     id="password"
                     placeholder="········"
@@ -69,10 +78,15 @@ async function login() {
                   />
                 </div>
               </div>
-
-              <!-- Botón de Acción -->
               <div class="d-grid">
-                <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+                <button type="submit" :disabled="loading" class="btn btn-primary btn-lg">
+                  {{ loading ? 'Signing In...' : 'Sign In' }}
+                </button>
+              </div>
+
+              <div v-if="error" class="alert alert-danger mt-3 mb-0">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                {{ error }}
               </div>
             </form>
           </div>
