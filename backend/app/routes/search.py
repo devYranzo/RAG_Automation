@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from engine import rag_engine
+from services.rag_engine import rag_engine
 
 router = APIRouter(tags=["Buscador"])
 

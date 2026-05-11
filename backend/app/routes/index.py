@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from engine import rag_engine
+from services.rag_engine import rag_engine
 
 router = APIRouter(prefix="/index", tags=["Indexación"])
 
