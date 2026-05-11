@@ -223,9 +223,10 @@ class RAGEngine:
         docs_by_source = {}
         for d in docs:
             src = d.metadata.get("source", "unknown")
-            docs_by_source.setdefault(src, [])
-            if len(docs_by_source[src]) < 2:
-                docs_by_source[src].append(d.page_content)
+            relative_src = os.path.relpath(src, settings.PDF_PATH) if src != "unknown" else src
+            docs_by_source.setdefault(relative_src, [])
+            if len(docs_by_source[relative_src]) < 2:
+                docs_by_source[relative_src].append(d.page_content)
 
         context = "\n\n---\n\n".join(
             f"ARCHIVO: {k}\n{''.join(v)[:800]}"
@@ -254,6 +255,8 @@ class RAGEngine:
 
             SOLICITUD:
             {question}
+
+            IMPORTANTE: En {{filename}} pon la ruta exacta que aparece en "ARCHIVO".
             """
         )
 
