@@ -19,7 +19,13 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 -- Insert a test user
 INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
-    VALUES ("test@email.com", "$argon2id$v=19$m=65536,t=3,p=4$PSeEEGIsZUwJgbB2bg2hFA$yEuHZcS4SarZS/8O2lHYlKy4VpaGYQyMiYSpps4P6eQ", "Test", "Test", true)
+VALUES (
+  'test@email.com',
+  '$argon2id$v=19$m=65536,t=3,p=4$PSeEEGIsZUwJgbB2bg2hFA$yEuHZcS4SarZS/8O2lHYlKy4VpaGYQyMiYSpps4P6eQ',
+  'Test',
+  'Test',
+  true
+);
 
 -- 3. Crear la tabla que usa LangChain automáticamente
 CREATE TABLE IF NOT EXISTS langchain_pg_embedding (
