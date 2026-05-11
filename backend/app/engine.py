@@ -1,7 +1,8 @@
 import time
 import asyncio
-import re
+import os
 from typing import Optional
+
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -12,9 +13,11 @@ from config import settings
 from database import get_vector_store
 from database import engine as db_engine
 
+
 class RAGEngine:
     def __init__(self):
         self.vector_store = get_vector_store()
+
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-lite",
             google_api_key=settings.GOOGLE_API_KEY,
@@ -23,16 +26,24 @@ class RAGEngine:
             timeout=120,
             request_timeout=120
         )
+
+        # INGESTION STATE
         self.is_indexing = False
         self.processed_documents = 0
         self.total_documents = 0
         self.indexing_error: Optional[str] = None
+
+        # CACHE
         self._query_cache = {}
         self._cache_ttl = 300
+        self._retriever = None
+
         self._sync_engine = None
         self._indexing_task: Optional[asyncio.Task] = None
-        self._retriever = None  # Cache del retriever
 
+    # =========================================================
+    # DB ENGINE
+    # =========================================================
     def _get_sync_engine(self):
         if self._sync_engine is None:
             db_url = settings.DATABASE_URL.replace('+asyncpg', '')
@@ -43,9 +54,12 @@ class RAGEngine:
             )
         return self._sync_engine
 
+    # =========================================================
+    # INDEXING CORE
+    # =========================================================
     def _index_documents_sync(self):
-        """Lógica de indexación optimizada de rag_background"""
         self.indexing_error = None
+
         try:
             loader = DirectoryLoader(
                 settings.PDF_PATH,
@@ -68,53 +82,87 @@ class RAGEngine:
                     if collection_uuid:
                         result = conn.execute(
                             text("""
-                                SELECT DISTINCT cmetadata->>'source' as source
+                                SELECT DISTINCT cmetadata->>'source'
                                 FROM langchain_pg_embedding
                                 WHERE collection_id = :uuid
-                                AND cmetadata->>'source' IS NOT NULL
                             """),
                             {"uuid": collection_uuid}
                         )
                         existing_ids = {row[0] for row in result}
-            except Exception as e:
-                print(f"Aviso: Error en documentos existentes: {e}")
 
-            new_docs = [d for d in docs if d.metadata.get('source') not in existing_ids]
-            if not new_docs: return 0
+            except Exception as e:
+                print(f"[WARN] existing docs: {e}")
+
+            new_docs = [
+                d for d in docs
+                if d.metadata.get('source') not in existing_ids
+            ]
+
+            if not new_docs:
+                self.total_documents = len(docs)
+                self.processed_documents = 0
+                return 0
 
             self.total_documents = len(new_docs)
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
-            chunks = text_splitter.split_documents(new_docs)
+            self.processed_documents = 0
 
-            for chunk in chunks:
-                chunk.page_content = chunk.page_content.replace("\x00", "")
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1500,
+                chunk_overlap=150
+            )
+            chunks = splitter.split_documents(new_docs)
+
+            for c in chunks:
+                c.page_content = c.page_content.replace("\x00", "")
 
             batch_size = 20
-            lotes = [chunks[i:i+batch_size] for i in range(0, len(chunks), batch_size)]
+            batches = [
+                chunks[i:i + batch_size]
+                for i in range(0, len(chunks), batch_size)
+            ]
 
-            for lote_idx, lote in enumerate(lotes):
-                if not self.is_indexing: break
+            total_batches = len(batches)
+
+            for i, batch in enumerate(batches):
+                if not self.is_indexing:
+                    break
+
                 try:
-                    self.vector_store.add_documents(lote)
+                    self.vector_store.add_documents(batch)
+
+                    # progreso basado en CVs (no chunks)
                     self.processed_documents = min(
-                        int((lote_idx + 1) * len(lote) / len(chunks) * len(new_docs)),
-                        len(new_docs)
+                        self.total_documents,
+                        int((i + 1) / total_batches * self.total_documents)
                     )
-                    time.sleep(1.5 if lote_idx < 10 else 2.5)
+
+                    time.sleep(1.5 if i < 10 else 2.5)
+
                 except Exception as e:
+                    print(f"[ERROR batch]: {e}")
                     time.sleep(5)
-                    continue
 
             self._query_cache.clear()
-            self._retriever = None  # Limpiar retriever cacheado después de indexar
+            self._retriever = None
+
             return len(chunks)
+
         except Exception as e:
             self.indexing_error = str(e)
             return 0
 
+        finally:
+            self.is_indexing = False
+
+    # =========================================================
+    # ASYNC INDEXING
+    # =========================================================
     async def index_documents_async(self):
-        if self.is_indexing: return {"status": "already_running"}
+        if self.is_indexing:
+            return {"status": "already_running"}
+
         self.is_indexing = True
+
         try:
             result = await asyncio.to_thread(self._index_documents_sync)
             return {"status": "completed", "chunks": result}
@@ -124,22 +172,40 @@ class RAGEngine:
     def start_indexing_background(self):
         if self._indexing_task and not self._indexing_task.done():
             return {"status": "already_running"}
+
         loop = asyncio.get_event_loop()
         self._indexing_task = loop.create_task(self.index_documents_async())
+
         return {"status": "started"}
 
-    async def query(self, question: str):
-        """Consulta optimizada: búsqueda rápida + ranking inteligente"""
-        cache_key = question.lower().strip()
-        current_time = time.time()
+    # =========================================================
+    # REINDEX
+    # =========================================================
+    async def reindex_all_documents(self):
+        try:
+            sync_engine = self._get_sync_engine()
+            with sync_engine.connect() as conn:
+                conn.execute(text("DELETE FROM langchain_pg_embedding"))
+                conn.commit()
 
-        # Verificar cache
+            return self.start_indexing_background()
+
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    # =========================================================
+    # QUERY
+    # =========================================================
+    async def query(self, question: str):
+
+        cache_key = question.lower().strip()
+        now = time.time()
+
         if cache_key in self._query_cache:
             res, ts = self._query_cache[cache_key]
-            if current_time - ts < self._cache_ttl:
+            if now - ts < self._cache_ttl:
                 return res
 
-        # Usar retriever cacheado (similarity es mucho más rápido que MMR)
         if self._retriever is None:
             self._retriever = self.vector_store.as_retriever(
                 search_type="similarity",
@@ -147,143 +213,133 @@ class RAGEngine:
             )
 
         try:
-            context_docs = await asyncio.wait_for(
-                asyncio.to_thread(self._retriever.invoke, question), timeout=8.0
+            docs = await asyncio.wait_for(
+                asyncio.to_thread(self._retriever.invoke, question),
+                timeout=8.0
             )
         except asyncio.TimeoutError:
             return {"answer": "Timeout en búsqueda.", "sources": []}
 
-        # Agrupar documentos por fuente
         docs_by_source = {}
-        for doc in context_docs:
-            source = doc.metadata.get('source', 'unknown')
-            if source not in docs_by_source:
-                docs_by_source[source] = []
-            if len(docs_by_source[source]) < 2:
-                docs_by_source[source].append(doc.page_content)
+        for d in docs:
+            src = d.metadata.get("source", "unknown")
+            docs_by_source.setdefault(src, [])
+            if len(docs_by_source[src]) < 2:
+                docs_by_source[src].append(d.page_content)
 
-        context_parts = []
-        base_path = settings.PDF_PATH.rstrip('/')
-
-        for source, contents in docs_by_source.items():
-            full_text_raw = ' '.join(contents)
-            clean_text = full_text_raw.replace('\x00', '')[:800]
-            rel_path = source.replace(base_path, "").lstrip('/')
-            context_parts.append(f"ARCHIVO ORIGEN: {rel_path}\nCONTENIDO:\n{clean_text}")
-
-        context_text = "\n\n---\n\n".join(context_parts)
+        context = "\n\n---\n\n".join(
+            f"ARCHIVO: {k}\n{''.join(v)[:800]}"
+            for k, v in docs_by_source.items()
+        )
 
         prompt = ChatPromptTemplate.from_template(
             """Eres un motor de selección de personal. Retorna exactamente los 5 mejores candidatos.
 
-INSTRUCCIONES:
-1. Solo los 5 mejores candidatos
-2. Formato estricto por candidato
+            INSTRUCCIONES:
+            1. Solo los 5 mejores candidatos
+            2. Formato estricto por candidato
 
-FORMATO POR CANDIDATO:
-### Nombre Completo
-[BOTON_CV:{{filename}}]
-**Por qué encaja:** [Razón breve técnica y cultural]
-**Experiencia:** [Años] años | [Cargo actual] | [Idiomas]
-**Skills:** [Tecnologías clave]
-**Educación:** [Titulación más alta]
+            FORMATO POR CANDIDATO:
+            ### Nombre Completo
+            [BOTON_CV:{{filename}}]
+            **Por qué encaja:** [Razón breve técnica y cultural]
+            **Experiencia:** [Años] años | [Cargo actual] | [Idiomas]
+            **Skills:** [Tecnologías clave]
+            **Educación:** [Titulación más alta]
 
----
+            ---
 
-DATOS DE LOS CVS:
-{context}
+            DATOS:
+            {context}
 
-SOLICITUD: {question}
-
-IMPORTANTE: En {{filename}} pon la ruta exacta que aparece en "ARCHIVO ORIGEN"."""
+            SOLICITUD:
+            {question}
+            """
         )
 
         chain = prompt | self.llm
 
-        try:
-            response = await chain.ainvoke({"context": context_text, "question": question})
-            answer = str(response.content)
+        response = await chain.ainvoke({
+            "context": context,
+            "question": question
+        })
 
-            # Limpiar placeholders
-            answer = answer.replace('[Nombre Candidato]', '').replace('[Nombre]', '')
+        answer = str(response.content)
 
-            # Procesar duplicados
-            seen_files = set()
-            cleaned_lines = []
-            skip_section = False
+        result = {
+            "answer": answer,
+            "sources": list(docs_by_source.keys())
+        }
 
-            for line in answer.split('\n'):
-                cv_match = re.search(r'\[BOTON_CV:([^\]]+)\]', line)
-                if cv_match:
-                    fname = cv_match.group(1)
-                    if fname in seen_files:
-                        skip_section = True
-                        continue
-                    seen_files.add(fname)
-                    skip_section = False
+        self._query_cache[cache_key] = (result, now)
+        return result
 
-                if line.strip().startswith('###'): skip_section = False
-                if not skip_section: cleaned_lines.append(line)
-
-            final_answer = '\n'.join(cleaned_lines)
-            result = {"answer": final_answer, "sources": list(docs_by_source.keys())}
-            self._query_cache[cache_key] = (result, current_time)
-            return result
-
-        except Exception as e:
-            return {"answer": f"Error en búsqueda: {str(e)}", "sources": []}
-
-    # --- Métodos de utilidad de engine.py ---
+    # =========================================================
+    # STATS
+    # =========================================================
     async def get_vector_count(self):
         try:
             async with db_engine.connect() as conn:
                 res = await conn.execute(text("SELECT count(*) FROM langchain_pg_embedding"))
                 return res.scalar() or 0
-        except: return 0
+        except:
+            return 0
+
+    def get_total_pdf_files(self):
+        total = 0
+
+        for root, dirs, files in os.walk(settings.PDF_PATH):
+            total += len([
+                file for file in files
+                if file.lower().endswith(".pdf")
+            ])
+
+        return total
 
     async def get_indexed_documents_count(self):
         try:
             async with db_engine.connect() as conn:
-                res = await conn.execute(text("SELECT count(DISTINCT cmetadata->>'source') FROM langchain_pg_embedding"))
+                res = await conn.execute(text("""
+                    SELECT count(DISTINCT cmetadata->>'source')
+                    FROM langchain_pg_embedding
+                """))
                 return res.scalar() or 0
-        except: return 0
+        except:
+            return 0
+
+    def get_indexing_status(self):
+        total = self.total_documents or 0
+        processed = self.processed_documents or 0
+
+        return {
+            "is_indexing": self.is_indexing,
+            "processed": processed,
+            "total": total,
+            "progress_percent": int((processed / total) * 100) if total > 0 else 0,
+            "error": self.indexing_error
+        }
 
     async def get_indexing_status_complete(self):
         v_count = await self.get_vector_count()
         d_count = await self.get_indexed_documents_count()
+
+        total_pdfs = self.get_total_pdf_files()
+
         return {
             **self.get_indexing_status(),
             "has_data": v_count > 0,
             "vectors_count": v_count,
-            "documents_count": d_count
+            "documents_count": d_count,
+            "total_pdfs": total_pdfs
         }
 
-    def get_indexing_status(self):
-        return {
-            "is_indexing": self.is_indexing,
-            "processed": self.processed_documents,
-            "total": self.total_documents,
-            "progress_percent": int((self.processed_documents/self.total_documents*100)) if self.total_documents > 0 else 0,
-            "error": self.indexing_error
-        }
-
-    async def reindex_all_documents(self):
-        """Elimina todo y vuelve a indexar"""
-        try:
-            sync_engine = self._get_sync_engine()
-            with sync_engine.connect() as conn:
-                conn.execute(text("DELETE FROM langchain_pg_embedding"))
-                conn.commit()
-            return self.start_indexing_background()
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    async def is_indexed(self) -> bool:
-        return await self.get_vector_count() > 0
+    async def is_indexed(self):
+        return (await self.get_vector_count()) > 0
 
     def clear_cache(self):
         self._query_cache.clear()
-        self._retriever = None  # También limpiar retriever cacheado
+        self._retriever = None
         return {"status": "cache_cleared"}
+
 
 rag_engine = RAGEngine()
