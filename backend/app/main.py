@@ -1,11 +1,30 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
 from config import settings
 from routes import auth, index, search, system, file_manager
+from database.db import Base, engine
+from database.seeders import run_seeders
+from models.user import User
+from models.profile import Profile
 
-app = FastAPI(title="TalentFinder API")
+# Lifespan
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
+    await run_seeders()
+    yield
+
+app = FastAPI(
+    title="TalentFinder API",
+    lifespan=lifespan
+)
+
+# Middlewares
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,7 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount PDFs
+# Static files mount
 app.mount("/pdfs", StaticFiles(directory=settings.PDF_PATH), name="pdfs")
 
 # Routes
