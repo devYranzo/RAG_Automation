@@ -1,121 +1,114 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import indexService from '@/services/index.service';
 
+const motorStatus = ref({
+  is_indexing: false,
+  has_data: false,
+  processed: 0,
+  total: 0,
+  progress_percent: 0,
+});
+
+const loadingIngest = ref(false);
+
+let statusInterval = null;
+let isPolling = false;
+
+const isReady = computed(() => {
+  return !motorStatus.value.is_indexing && motorStatus.value.has_data;
+});
+
+/**
+ * PETICIÓN BASE
+ */
+const fetchStatus = async () => {
+  const data = await indexService.getStatus();
+
+  motorStatus.value = {
+    ...motorStatus.value,
+    ...data,
+  };
+
+  return data;
+};
+
+/**
+ * INIT (dashboard load)
+ */
+const init = async () => {
+  const data = await fetchStatus();
+
+  if (data.is_indexing) {
+    startPolling();
+  }
+};
+
+/**
+ * START POLLING
+ */
+const startPolling = () => {
+  if (isPolling) return;
+
+  isPolling = true;
+
+  statusInterval = setInterval(async () => {
+    const data = await fetchStatus();
+
+    if (!data.is_indexing) {
+      stopPolling();
+      loadingIngest.value = false;
+    }
+  }, 2500);
+};
+
+/**
+ * STOP POLLING
+ */
+const stopPolling = () => {
+  if (statusInterval) {
+    clearInterval(statusInterval);
+    statusInterval = null;
+  }
+  isPolling = false;
+};
+
+/**
+ * INICIAR INDEXACIÓN
+ */
+const encenderMotor = async () => {
+  if (loadingIngest.value) return;
+
+  loadingIngest.value = true;
+
+  await indexService.startIngest();
+
+  startPolling();
+};
+
+/**
+ * REINDEXAR
+ */
+const reindexar = async () => {
+  if (loadingIngest.value) return;
+
+  loadingIngest.value = true;
+
+  await indexService.reindex();
+
+  startPolling();
+};
+
+/**
+ * API pública del composable
+ */
 export function useMotorStatus() {
-  const motorStatus = ref({
-    is_ready: false,
-    is_indexing: false,
-    processed: 0,
-    total: 0,
-    progress_percent: 0,
-    error: null,
-    has_data: false,
-    documents_count: 0,
-  });
-
-  const loadingIngest = ref(false);
-  const progreso = ref(0);
-  let statusInterval = null;
-
-  const isReady = computed(() => {
-    return !motorStatus.value.is_indexing && motorStatus.value.has_data;
-  });
-
-  const checkStatus = async () => {
-    try {
-      const data = await indexService.getStatus();
-
-      motorStatus.value = {
-        ...motorStatus.value,
-        ...data,
-      };
-
-      if (data.is_indexing) {
-        loadingIngest.value = true;
-        progreso.value = Math.min(data.progress_percent || 0, 99);
-        iniciarIntervalo();
-      } else {
-        if (loadingIngest.value) {
-          progreso.value = 100;
-          setTimeout(() => {
-            loadingIngest.value = false;
-          }, 1500);
-        }
-        detenerIntervalo();
-      }
-    } catch (e) {
-      console.error('Error al obtener el estado del motor:', e);
-    }
-  };
-
-  const iniciarIntervalo = () => {
-    if (!statusInterval) {
-      statusInterval = setInterval(checkStatus, 2500);
-    }
-  };
-
-  const detenerIntervalo = () => {
-    if (statusInterval) {
-      clearInterval(statusInterval);
-      statusInterval = null;
-    }
-  };
-
-  const encenderMotor = async () => {
-    if (loadingIngest.value) return;
-
-    loadingIngest.value = true;
-    progreso.value = 0;
-
-    try {
-      await indexService.startIngest();
-      iniciarIntervalo();
-    } catch (error) {
-      loadingIngest.value = false;
-      alert('No se pudo iniciar el proceso de ingesta.');
-    }
-  };
-
-  const reindexar = async () => {
-    if (loadingIngest.value) return;
-
-    const confirmacion = confirm(
-      '⚠️ Esto eliminará todos los vectores existentes y volverá a indexar todos los CVs desde cero.\n\n¿Estás seguro de que deseas continuar?'
-    );
-
-    if (!confirmacion) return;
-
-    loadingIngest.value = true;
-    progreso.value = 0;
-    motorStatus.value.is_ready = false;
-
-    try {
-      await indexService.reindex();
-      iniciarIntervalo();
-    } catch (error) {
-      loadingIngest.value = false;
-      alert('No se pudo iniciar el proceso de reindexación.');
-    }
-  };
-
-  onMounted(async () => {
-    await checkStatus();
-    if (motorStatus.value.is_indexing) {
-      iniciarIntervalo();
-    }
-  });
-
-  onUnmounted(() => {
-    detenerIntervalo();
-  });
-
   return {
     motorStatus,
     loadingIngest,
-    progreso,
     isReady,
+    init,
     encenderMotor,
     reindexar,
-    checkStatus,
+    fetchStatus,
   };
 }

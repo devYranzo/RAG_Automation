@@ -1,25 +1,35 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import StatCard from '@/components/StatCard.vue';
 import IndexingPanel from '@/components/IndexingPanel.vue';
 import { useAuthStore } from '@/stores/authStore';
 import systemService from '@/services/system.service';
+import { useMotorStatus } from '@/composables/useMotorStatus';
 
 const stats = ref(null);
 const error = ref(null);
 
 const authStore = useAuthStore();
 
+const { motorStatus, isReady, loadingIngest, encenderMotor, reindexar, init } = useMotorStatus();
+
 const loadStats = async () => {
-  try {
-    stats.value = await systemService.getStats();
-  } catch (err) {
-    console.error('Error cargando stats:', err);
-  }
+  stats.value = await systemService.getStats();
 };
 
-onMounted(() => {
-  loadStats();
+watch(
+  motorStatus,
+  async () => {
+    if (!motorStatus.value.is_indexing) {
+      stats.value = await systemService.getStats();
+    }
+  },
+  { deep: true }
+);
+
+onMounted(async () => {
+  await loadStats();
+  await init();
 });
 </script>
 
@@ -47,7 +57,13 @@ onMounted(() => {
 
     <!-- Sección de Control -->
     <div v-if="stats" class="mt-4">
-      <IndexingPanel :indexing="stats.indexing" :is-indexed="stats.is_indexed" />
+      <IndexingPanel
+        :motor-status="motorStatus"
+        :is-ready="isReady"
+        :loading-ingest="loadingIngest"
+        :encender-motor="encenderMotor"
+        :reindexar="reindexar"
+      />
     </div>
   </div>
 </template>
