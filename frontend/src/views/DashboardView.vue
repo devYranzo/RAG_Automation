@@ -3,34 +3,23 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import StatCard from '@/components/StatCard.vue';
 import IndexingPanel from '@/components/IndexingPanel.vue';
 import { useAuthStore } from '@/stores/authStore';
-import { useAuth } from '@/composables/useAuth';
+import systemService from '@/services/system.service';
 
 const stats = ref(null);
-let statsInterval = null;
 const error = ref(null);
 
 const authStore = useAuthStore();
 
-const { fetchProfile } = useAuth();
-
-async function fetchStats() {
+const loadStats = async () => {
   try {
-    const res = await fetch('http://localhost:8000/system/stats');
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    stats.value = await res.json();
-  } catch (e) {
-    error.value = 'No se pudo conectar con el servidor de estadísticas.';
+    stats.value = await systemService.getStats();
+  } catch (err) {
+    console.error('Error cargando stats:', err);
   }
-}
+};
 
 onMounted(() => {
-  fetchProfile();
-
-  fetchStats();
-});
-
-onUnmounted(() => {
-  if (statsInterval) clearInterval(statsInterval);
+  loadStats();
 });
 </script>
 

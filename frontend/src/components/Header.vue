@@ -1,9 +1,10 @@
 <script setup>
 import { useAuth } from '@/composables/useAuth';
 import { useAuthStore } from '@/stores/authStore';
+import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-const { logout, error } = useAuth();
+const { logout, error, fetchProfile } = useAuth();
 
 defineProps({
   isDark: {
@@ -26,6 +27,10 @@ const handleLogout = () => {
     console.error(e);
   }
 };
+
+onMounted(() => {
+  fetchProfile();
+});
 </script>
 
 <template>
