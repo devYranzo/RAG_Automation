@@ -1,5 +1,4 @@
 <script setup>
-import IngestProgress from '@/components/IngestProgress.vue';
 import SearchBar from '@/components/SearchBar.vue';
 import ResultCard from '@/components/ResultCard.vue';
 import { useSearch } from '@/composables/useSearch';
@@ -13,8 +12,6 @@ const { query, respuesta, loading, copiado, canSearch, buscar, copiarAlPortapape
 
 <template>
   <div>
-    <IngestProgress v-if="loadingIngest" :progreso="progreso" />
-
     <SearchBar
       v-model="query"
       :is-ready="isReady"

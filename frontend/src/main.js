@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import App from './App.vue';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import router from './router';
@@ -17,6 +18,12 @@ const initializeTheme = () => {
   }
 };
 
+// Initialize pinia
+const pinia = createPinia();
+
 initializeTheme();
 
-createApp(App).use(router).mount('#app');
+const app = createApp(App);
+app.use(router);
+app.use(pinia);
+app.mount('#app');

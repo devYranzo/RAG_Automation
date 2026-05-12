@@ -14,21 +14,7 @@ export default {
     });
   },
 
-  async logout() {
-    // Limpiar token del localStorage
-    localStorage.removeItem('authToken');
-  },
-
-  setToken(token) {
-    localStorage.setItem('authToken', token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  },
-
-  getToken() {
-    return localStorage.getItem('authToken');
-  },
-
-  isAuthenticated() {
-    return !!this.getToken();
+  async getCurrentUserProfile() {
+    return await api.get('/profile/me');
   },
 };

@@ -7,24 +7,29 @@ from core.security import hash_password
 async def seed_users():
     async with SessionLocal() as session:
 
-      # User
-      admin_user = User(
-          email="admin@email.com",
-          hashed_password=hash_password("12345Abcde"),
-          is_active=True
-      )
+        stmt = select(User).where(User.email == "admin@email.com")
+        result = await session.execute(stmt)
+        existing_user = result.scalar_one_or_none()
 
-      session.add(admin_user)
-      await session.flush()
+        # User
+        if not existing_user:
+            admin_user = User(
+                email="admin@email.com",
+                hashed_password=hash_password("12345Abcde"),
+                is_active=True
+            )
 
-      # Profile
-      admin_profile = Profile(
-          first_name="Admin",
-          last_name="System",
-          role=Role.Admin,
-          user_id=admin_user.id,
-      )
+            session.add(admin_user)
+            await session.flush()
 
-      session.add(admin_profile)
+            # Profile
+            admin_profile = Profile(
+                first_name="Admin",
+                last_name="System",
+                role=Role.Admin,
+                user_id=admin_user.id,
+            )
 
-      await session.commit()
+            session.add(admin_profile)
+
+            await session.commit()
