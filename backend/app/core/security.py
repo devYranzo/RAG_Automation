@@ -4,7 +4,10 @@ from passlib.context import CryptContext
 from config import settings
 from fastapi import Depends, HTTPException, status, Cookie
 from fastapi.security import OAuth2PasswordBearer
+
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+
 from database.db import SessionLocal
 from models.user import User
 
@@ -28,7 +31,6 @@ def create_access_token(data: dict) -> str:
 
 # --- Dependencia para obtener el usuario actual ---
 async def get_current_user(
-    # Cambiamos oauth2_scheme por Cookie
     access_token: str | None = Cookie(None)
 ) -> User:
     credentials_exception = HTTPException(
@@ -36,22 +38,24 @@ async def get_current_user(
         detail="No se pudo validar las credenciales o la sesión ha expirado",
     )
 
-    # Si la cookie no existe, lanzamos el 401 directamente
     if not access_token:
         raise credentials_exception
 
     try:
-        # Decodificamos el token que extrajimos de la cookie
         payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str | None = payload.get("sub")
-
         if email is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
     async with SessionLocal() as session:
-        query = select(User).where(User.email == email)
+        # Modificamos la query para incluir el perfil (Eager Loading)
+        query = (
+            select(User)
+            .options(joinedload(User.profile)) # <-- Esto trae el perfil de una vez
+            .where(User.email == email)
+        )
         result = await session.execute(query)
         user = result.scalar_one_or_none()
 
@@ -59,3 +63,26 @@ async def get_current_user(
             raise credentials_exception
 
         return user
+
+class RoleChecker:
+    def __init__(self, allowed_roles: list[str]):
+        self.allowed_roles = [role.lower() for role in allowed_roles]
+
+    def __call__(self, current_user: User = Depends(get_current_user)):
+        user_role = ""
+        if current_user.profile and current_user.profile.role:
+            if hasattr(current_user.profile.role, 'name'):
+                user_role = current_user.profile.role.name.lower()
+            else:
+                user_role = str(current_user.profile.role).lower()
+
+        if user_role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permisos insuficientes."
+            )
+        return current_user
+
+require_admin = RoleChecker(["admin"])
+require_editor = RoleChecker(["admin", "editor"])
+require_any_user = RoleChecker(["admin", "editor", "viewer"])

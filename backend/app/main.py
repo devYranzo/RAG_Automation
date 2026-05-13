@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from config import settings
-from routes import auth, index, search, system, file_manager, profile
+from routes import auth, index, search, system, file_manager, profile, users
 from database.db import Base, engine
 from database.seeders import run_seeders
 from models.user import User
@@ -46,3 +46,4 @@ app.include_router(search.router)
 app.include_router(system.router)
 app.include_router(file_manager.router)
 app.include_router(profile.router)
+app.include_router(users.router)

@@ -41,7 +41,7 @@ onMounted(async () => {
   <div class="container-fluid py-4">
     <div class="row mb-4">
       <div class="col">
-        <h2 class="fw-bold m-0">Hola, {{ authStore.fullName }}</h2>
+        <h2 class="fw-bold m-0">Hola, {{ authStore.user?.first_name }}</h2>
         <p class="text-muted small">Panel de administración de Talent Finder</p>
       </div>
     </div>

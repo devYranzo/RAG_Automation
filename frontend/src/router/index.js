@@ -1,8 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '@/views/HomeView.vue';
-import FileManager from '@/views/FileManager.vue';
-import LoginView from '@/views/LoginView.vue';
-import DashboardView from '@/views/DashboardView.vue';
 import { useAuthStore } from '@/stores/authStore';
 import { useAuth } from '@/composables/useAuth';
 
@@ -10,24 +6,24 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: LoginView,
+    component: () => import('@/views/LoginView.vue'),
   },
   {
     path: '/',
     name: 'Home',
-    component: HomeView,
+    component: () => import('@/views/HomeView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: DashboardView,
+    component: () => import('@/views/DashboardView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/filemanager',
     name: 'File Manager',
-    component: FileManager,
+    component: () => import('@/views/FileManager.vue'),
     meta: { requiresAuth: true },
   },
 ];
