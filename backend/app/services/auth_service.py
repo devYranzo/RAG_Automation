@@ -23,22 +23,12 @@ async def register_user(db: AsyncSession, email: str, password: str, first_name:
 
 
 async def authenticate_user(db: AsyncSession, email: str, password: str):
-
     result = await db.execute(
         select(User).where(User.email == email)
     )
-
     user = result.scalar_one_or_none()
 
-    if not user:
+    if not user or not verify_password(password, user.hashed_password): # type: ignore
         return None
 
-    if not verify_password(password, user.hashed_password): # type: ignore
-        return None
-
-    token = create_access_token({"sub": user.email})
-
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }
+    return create_access_token({"sub": user.email})

@@ -11,27 +11,15 @@ export function useAuth() {
   const error = ref(null);
 
   /**
-   * Proceso de Login en dos pasos:
-   * 1. Obtener Access Token.
-   * 2. Obtener Perfil de Usuario con el token obtenido.
+   * Login
    */
   const login = async (credentials) => {
     loading.value = true;
     error.value = null;
 
     try {
-      // PASO 1: Autenticación
-      const authResponse = await authService.login(credentials.email, credentials.password);
+      await authService.login(credentials.email, credentials.password);
 
-      const token = authResponse.data.access_token || authResponse.data.token;
-
-      if (!token) {
-        throw new Error('No se recibió el token de acceso del servidor.');
-      }
-
-      authStore.setToken(token);
-
-      // PASO 2: Obtención de perfil (Endpoint /profile/me)
       const profileResponse = await authService.getCurrentUserProfile();
       const userData = profileResponse.data;
 
@@ -41,10 +29,9 @@ export function useAuth() {
 
       authStore.setUser(userData);
 
-      // PASO 3: Navegación
       await router.push({ path: '/' });
 
-      return { token, user: userData };
+      return { user: userData };
     } catch (err) {
       authStore.clearAuth();
       error.value = err.response?.data?.detail || err.message || 'Error en la autenticación';
@@ -54,9 +41,32 @@ export function useAuth() {
     }
   };
 
-  const logout = () => {
-    authStore.clearAuth();
-    router.push({ name: 'Login' });
+  /**
+   * Logout:
+   */
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error('Error al cerrar sesión en servidor:', err);
+    } finally {
+      authStore.clearAuth();
+      router.push({ name: 'Login' });
+    }
+  };
+
+  /**
+   * Sincronización inicial:
+   */
+  const fetchProfile = async () => {
+    try {
+      const response = await authService.getCurrentUserProfile();
+      authStore.setUser(response.data);
+      return response.data;
+    } catch (err) {
+      authStore.clearAuth();
+      return null;
+    }
   };
 
   return {
@@ -64,6 +74,7 @@ export function useAuth() {
     error,
     login,
     logout,
+    fetchProfile,
     user: computed(() => authStore.user),
     isAuthenticated: computed(() => authStore.isAuthenticated),
   };

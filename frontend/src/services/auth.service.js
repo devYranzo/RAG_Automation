@@ -14,6 +14,10 @@ export default {
     });
   },
 
+  async logout() {
+    await api.post('/auth/logout');
+  },
+
   async getCurrentUserProfile() {
     return await api.get('/profile/me');
   },

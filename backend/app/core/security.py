@@ -2,9 +2,8 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from config import settings
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Cookie
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database.db import SessionLocal
 from models.user import User
@@ -29,15 +28,21 @@ def create_access_token(data: dict) -> str:
 
 # --- Dependencia para obtener el usuario actual ---
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    # Cambiamos oauth2_scheme por Cookie
+    access_token: str | None = Cookie(None)
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No se pudo validar las credenciales",
-        headers={"WWW-Authenticate": "Bearer"},
+        detail="No se pudo validar las credenciales o la sesión ha expirado",
     )
+
+    # Si la cookie no existe, lanzamos el 401 directamente
+    if not access_token:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # Decodificamos el token que extrajimos de la cookie
+        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str | None = payload.get("sub")
 
         if email is None:
@@ -45,7 +50,6 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    # Buscamos al usuario en la DB usando el email extraído del token
     async with SessionLocal() as session:
         query = select(User).where(User.email == email)
         result = await session.execute(query)
@@ -53,4 +57,5 @@ async def get_current_user(
 
         if user is None:
             raise credentials_exception
+
         return user

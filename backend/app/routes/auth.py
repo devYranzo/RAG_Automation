@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas.auth import LoginRequest, RegisterRequest, UserResponse
@@ -25,14 +25,26 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 # LOGIN
 @router.post("/login")
-async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(response: Response, data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     token = await authenticate_user(db, data.email, data.password)
 
     if not token:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    return {
-        "access_token": token["access_token"],
-        "token_type": token["token_type"]
-    }
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=3600,
+        path="/"
+    )
+
+    return {"message": "Logeado correctamente"}
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie(key="access_token", path="/", httponly=True, samesite="lax",)
+    return {"message": "Sesión cerrada"}

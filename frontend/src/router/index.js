@@ -4,6 +4,7 @@ import FileManager from '@/views/FileManager.vue';
 import LoginView from '@/views/LoginView.vue';
 import DashboardView from '@/views/DashboardView.vue';
 import { useAuthStore } from '@/stores/authStore';
+import { useAuth } from '@/composables/useAuth';
 
 const routes = [
   {
@@ -36,12 +37,25 @@ const router = createRouter({
   routes,
 });
 
-// GLOBAL GUARD
-router.beforeEach((to, from) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore();
+  const { fetchProfile } = useAuth();
 
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return { name: 'Login' };
+  if (to.meta.requiresAuth) {
+    if (!authStore.isAuthenticated) {
+      const user = await fetchProfile();
+
+      if (!user) {
+        return {
+          name: 'Login',
+          query: { redirect: to.fullPath },
+        };
+      }
+    }
+  }
+
+  if (to.name === 'Login' && authStore.isAuthenticated) {
+    return { path: '/' };
   }
 });
 

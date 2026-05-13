@@ -3,10 +3,17 @@ import Header from './components/Header.vue';
 import { useRoute } from 'vue-router';
 import { useMotorStatus } from '@/composables/useMotorStatus';
 import { useTheme } from '@/composables/useTheme';
+import { onMounted } from 'vue';
+import { useAuth } from './composables/useAuth';
 
 const route = useRoute();
 const { isReady, encenderMotor, reindexar } = useMotorStatus();
 const { isDark, toggleTheme } = useTheme();
+const { fetchProfile } = useAuth();
+
+onMounted(async () => {
+  await fetchProfile();
+});
 </script>
 
 <template>
