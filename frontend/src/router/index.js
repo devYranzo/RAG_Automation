@@ -3,10 +3,7 @@ import HomeView from '@/views/HomeView.vue';
 import FileManager from '@/views/FileManager.vue';
 import LoginView from '@/views/LoginView.vue';
 import DashboardView from '@/views/DashboardView.vue';
-
-function isAuthenticated() {
-  return !!localStorage.getItem('token');
-}
+import { useAuthStore } from '@/stores/authStore';
 
 const routes = [
   {
@@ -40,11 +37,11 @@ const router = createRouter({
 });
 
 // GLOBAL GUARD
-router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth && !isAuthenticated()) {
-    next({ path: '/login' });
-  } else {
-    next();
+router.beforeEach((to, from) => {
+  const authStore = useAuthStore();
+
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    return { name: 'Login' };
   }
 });
 

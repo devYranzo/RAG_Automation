@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import authService from '@/services/auth.service';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,21 +10,44 @@ export function useAuth() {
   const loading = ref(false);
   const error = ref(null);
 
+  /**
+   * Proceso de Login en dos pasos:
+   * 1. Obtener Access Token.
+   * 2. Obtener Perfil de Usuario con el token obtenido.
+   */
   const login = async (credentials) => {
     loading.value = true;
     error.value = null;
 
     try {
-      const response = await authService.login(credentials.email, credentials.password);
-      const { access_token, user_data } = response.data;
+      // PASO 1: Autenticación
+      const authResponse = await authService.login(credentials.email, credentials.password);
 
-      authStore.setToken(access_token);
-      authStore.setUser(user_data);
+      const token = authResponse.data.access_token || authResponse.data.token;
 
-      await router.push('/');
-      return response.data;
+      if (!token) {
+        throw new Error('No se recibió el token de acceso del servidor.');
+      }
+
+      authStore.setToken(token);
+
+      // PASO 2: Obtención de perfil (Endpoint /profile/me)
+      const profileResponse = await authService.getCurrentUserProfile();
+      const userData = profileResponse.data;
+
+      if (!userData) {
+        throw new Error('No se pudieron recuperar los datos del perfil.');
+      }
+
+      authStore.setUser(userData);
+
+      // PASO 3: Navegación
+      await router.push({ path: '/' });
+
+      return { token, user: userData };
     } catch (err) {
-      error.value = err.response?.data?.detail || 'Error al iniciar sesión';
+      authStore.clearAuth();
+      error.value = err.response?.data?.detail || err.message || 'Error en la autenticación';
       throw err;
     } finally {
       loading.value = false;
@@ -33,17 +56,7 @@ export function useAuth() {
 
   const logout = () => {
     authStore.clearAuth();
-    router.push('/login');
-  };
-
-  const fetchProfile = async () => {
-    if (!authStore.token) return;
-    try {
-      const response = await authService.getCurrentUserProfile();
-      authStore.setUser(response.data);
-    } catch (err) {
-      console.error(err);
-    }
+    router.push({ name: 'Login' });
   };
 
   return {
@@ -51,8 +64,7 @@ export function useAuth() {
     error,
     login,
     logout,
-    fetchProfile,
-    user: authStore.user,
-    isAuthenticated: authStore.isAuthenticated,
+    user: computed(() => authStore.user),
+    isAuthenticated: computed(() => authStore.isAuthenticated),
   };
 }
