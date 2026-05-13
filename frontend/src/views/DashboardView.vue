@@ -1,17 +1,23 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import StatCard from '@/components/StatCard.vue';
-import IndexingPanel from '@/components/IndexingPanel.vue';
+import { ref, onMounted, watch, shallowRef } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
 import systemService from '@/services/system.service';
 import { useMotorStatus } from '@/composables/useMotorStatus';
 
-const stats = ref(null);
-const error = ref(null);
+// Importar los componentes de las pestañas
+import TabGeneral from '@/components/tabs/TabGeneral.vue';
+import TabUsuarios from '@/components/tabs/TabUsuarios.vue';
 
 const authStore = useAuthStore();
+const stats = ref(null);
+const activeTab = ref('general');
 
 const { motorStatus, isReady, loadingIngest, encenderMotor, reindexar, init } = useMotorStatus();
+
+const tabs = {
+  general: TabGeneral,
+  usuarios: TabUsuarios,
+};
 
 const loadStats = async () => {
   stats.value = await systemService.getStats();
@@ -20,9 +26,7 @@ const loadStats = async () => {
 watch(
   motorStatus,
   async () => {
-    if (!motorStatus.value.is_indexing) {
-      stats.value = await systemService.getStats();
-    }
+    if (!motorStatus.value.is_indexing) await loadStats();
   },
   { deep: true }
 );
@@ -35,35 +39,50 @@ onMounted(async () => {
 
 <template>
   <div class="container-fluid py-4">
-    <div v-if="error" class="alert alert-danger border-0 rounded-4 shadow-sm mb-4">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+    <div class="row mb-4">
+      <div class="col">
+        <h2 class="fw-bold m-0">Hola, {{ authStore.fullName }}</h2>
+        <p class="text-muted small">Panel de administración de Talent Finder</p>
+      </div>
     </div>
 
-    <div class="row mb-3">
-      <h2 class="fw-bold">Hola, {{ authStore.fullName }}</h2>
-    </div>
+    <ul class="nav nav-pills mb-4 p-1 bg-light rounded-4 d-inline-flex">
+      <li class="nav-item">
+        <button
+          @click="activeTab = 'general'"
+          :class="[
+            'nav-link px-4',
+            activeTab === 'general' ? 'active  rounded-4' : 'text-secondary',
+          ]"
+        >
+          General
+        </button>
+      </li>
+      <li class="nav-item">
+        <button
+          @click="activeTab = 'usuarios'"
+          :class="[
+            'nav-link px-4',
+            activeTab === 'usuarios' ? 'active rounded-4' : 'text-secondary',
+          ]"
+        >
+          Usuarios
+        </button>
+      </li>
+    </ul>
 
-    <!-- Sección de Stats -->
-    <div v-if="stats" class="row g-3">
-      <StatCard
-        title="Estado"
-        :value="stats.is_indexed ? 'Activo' : 'No indexado'"
-        :variant="stats.is_indexed ? 'text-success' : 'text-warning'"
-      />
-      <StatCard title="Vectores" :value="stats.vectors_count" />
-      <StatCard title="CVs procesados" :value="`${stats.documents_count} / ${stats.total_pdfs}`" />
-      <StatCard title="Caché" :value="stats.cache_size" />
-    </div>
-
-    <!-- Sección de Control -->
-    <div v-if="stats" class="mt-4">
-      <IndexingPanel
+    <keep-alive>
+      <component
+        :is="tabs[activeTab]"
+        :stats="stats"
         :motor-status="motorStatus"
         :is-ready="isReady"
         :loading-ingest="loadingIngest"
         :encender-motor="encenderMotor"
         :reindexar="reindexar"
       />
-    </div>
+    </keep-alive>
   </div>
 </template>
+
+<style scoped></style>

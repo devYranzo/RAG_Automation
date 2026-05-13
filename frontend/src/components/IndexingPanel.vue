@@ -75,7 +75,7 @@ defineProps({
 
       <div v-else class="text-success">
         <i class="bi bi-check-circle-fill me-2"></i>
-        Motor de búsqueda indexado
+        Sistema indexado
       </div>
     </div>
   </div>

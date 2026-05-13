@@ -19,7 +19,7 @@ body {
 }
 
 [data-bs-theme='dark'] .bg-light {
-  background-color: var(--bg-dark) !important;
+  background-color: #212529 !important;
   color: var(--text-dark);
 }
 
