@@ -6,6 +6,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!user.value);
 
+  const hasRole = (allowedRoles) => {
+    if (!user.value) return false;
+    return allowedRoles.includes(user.value.role?.toLowerCase());
+  };
+
+  const requireAtLeastRecruiter = computed(() => hasRole(['admin', 'recruiter']));
+  const requireAdmin = computed(() => hasRole(['admin']));
+  const requireAnyUser = computed(() => hasRole(['admin', 'recruiter', 'viewer']));
+
   function setUser(userData) {
     user.value = userData;
   }
@@ -14,5 +23,13 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
   }
 
-  return { user, isAuthenticated, setUser, clearAuth };
+  return {
+    user,
+    isAuthenticated,
+    requireAdmin,
+    requireAtLeastRecruiter,
+    requireAnyUser,
+    setUser,
+    clearAuth,
+  };
 });

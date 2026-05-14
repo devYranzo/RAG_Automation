@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas.auth import LoginRequest, RegisterRequest, UserResponse
 from services.auth_service import register_user, authenticate_user
+from core.security import require_any_user
 from database.db import SessionLocal
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -15,7 +16,7 @@ async def get_db():
 
 
 # REGISTER
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=UserResponse, dependencies=[Depends(require_any_user)])
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
     user = await register_user(db, data.email, data.password, data.first_name, data.last_name)
@@ -25,7 +26,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 # LOGIN
 @router.post("/login")
-async def login(response: Response, data: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(response: Response, data: LoginRequest, db: AsyncSession = Depends(get_db), dependencies=[Depends(require_any_user)]):
 
     token = await authenticate_user(db, data.email, data.password)
 
@@ -44,7 +45,7 @@ async def login(response: Response, data: LoginRequest, db: AsyncSession = Depen
 
     return {"message": "Logeado correctamente"}
 
-@router.post("/logout")
+@router.post("/logout", dependencies=[Depends(require_any_user)])
 async def logout(response: Response):
     response.delete_cookie(key="access_token", path="/", httponly=True, samesite="lax",)
     return {"message": "Sesión cerrada"}

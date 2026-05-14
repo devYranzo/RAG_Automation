@@ -1,7 +1,6 @@
 <script setup>
 import { useAuth } from '@/composables/useAuth';
 import { useAuthStore } from '@/stores/authStore';
-import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const { logout } = useAuth();
@@ -42,6 +41,7 @@ const handleLogout = () => {
       <div class="nav nav-pills bg-light rounded-pill shadow-sm">
         <router-link
           to="/"
+          v-if="authStore.requireAnyUser"
           class="nav-link rounded-pill px-4"
           :class="{ active: route.path === '/' }"
         >
@@ -50,6 +50,7 @@ const handleLogout = () => {
 
         <router-link
           to="/filemanager"
+          v-if="authStore.requireAtLeastRecruiter"
           class="nav-link rounded-pill px-4"
           :class="{ active: route.path === '/filemanager' }"
         >
@@ -74,14 +75,18 @@ const handleLogout = () => {
 
           <ul class="dropdown-menu dropdown-menu-end shadow-sm">
             <li>
-              <button class="dropdown-item" @click="router.push('/dashboard')">
-                <i class="bi bi-speedometer2 me-2"></i> Dashboard
+              <button
+                v-if="authStore.requireAdmin"
+                class="dropdown-item"
+                @click="router.push('/dashboard')"
+              >
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
               </button>
             </li>
 
             <li>
               <button class="dropdown-item" @click="emit('toggle-theme')">
-                <i class="bi bi-circle-half me-2"></i> Cambiar tema
+                <i class="bi bi-circle-half me-2"></i>Cambiar tema
               </button>
             </li>
 

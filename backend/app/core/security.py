@@ -50,10 +50,9 @@ async def get_current_user(
         raise credentials_exception
 
     async with SessionLocal() as session:
-        # Modificamos la query para incluir el perfil (Eager Loading)
         query = (
             select(User)
-            .options(joinedload(User.profile)) # <-- Esto trae el perfil de una vez
+            .options(joinedload(User.profile))
             .where(User.email == email)
         )
         result = await session.execute(query)
@@ -84,5 +83,5 @@ class RoleChecker:
         return current_user
 
 require_admin = RoleChecker(["admin"])
-require_editor = RoleChecker(["admin", "editor"])
-require_any_user = RoleChecker(["admin", "editor", "viewer"])
+require_recruiter = RoleChecker(["admin", "recruiter"])
+require_any_user = RoleChecker(["admin", "recruiter", "viewer"])

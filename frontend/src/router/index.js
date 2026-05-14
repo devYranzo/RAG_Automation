@@ -18,13 +18,13 @@ const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/DashboardView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['admin'] },
   },
   {
     path: '/filemanager',
     name: 'File Manager',
     component: () => import('@/views/FileManager.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'recruiter'] },
   },
 ];
 
@@ -47,6 +47,16 @@ router.beforeEach(async (to) => {
           query: { redirect: to.fullPath },
         };
       }
+    }
+  }
+
+  if (to.meta.allowedRoles) {
+    const userRole = authStore.user?.role?.toLowerCase();
+
+    if (!to.meta.allowedRoles.includes(userRole)) {
+      console.warn(`Acceso denegado a ${to.path}. Rol requerido: ${to.meta.allowedRoles}`);
+      // Redirigir a Home o a una página de "No autorizado"
+      return { path: '/' };
     }
   }
 
