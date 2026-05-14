@@ -19,7 +19,7 @@ onMounted(async () => {
 <template>
   <main class="container-lg">
     <Header
-      v-if="route.path !== '/login'"
+      v-if="!route.meta.hideHeader"
       :is-ready="isReady"
       :is-dark="isDark"
       @encender="encenderMotor"

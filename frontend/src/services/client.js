@@ -13,15 +13,40 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      const authStore = useAuthStore();
-
-      authStore.clearAuth();
-
-      if (router.currentRoute.value.path !== '/login') {
-        router.push('/login?message=session_expired');
-      }
+    if (!error.response) {
+      router.push({ name: 'Error', params: { code: '500' } });
+      return Promise.reject(error);
     }
+
+    const { status } = error.response;
+    const authStore = useAuthStore();
+
+    switch (status) {
+      case 401:
+        authStore.clearAuth();
+        if (router.currentRoute.value.path !== '/login') {
+          router.push('/login?message=session_expired');
+        }
+        break;
+
+      case 403:
+        router.push({ name: 'Error', params: { code: '403' } });
+        break;
+
+      case 404:
+        if (error.config.method === 'get') {
+          router.push({ name: 'Error', params: { code: '404' } });
+        }
+        break;
+
+      case 500:
+        router.push({ name: 'Error', params: { code: '500' } });
+        break;
+
+      default:
+        break;
+    }
+
     return Promise.reject(error);
   }
 );

@@ -7,6 +7,7 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: () => import('@/views/LoginView.vue'),
+    meta: { hideHeader: true },
   },
   {
     path: '/',
@@ -25,6 +26,17 @@ const routes = [
     name: 'File Manager',
     component: () => import('@/views/FileManager.vue'),
     meta: { requiresAuth: true, allowedRoles: ['admin', 'recruiter'] },
+  },
+  {
+    path: '/error/:code',
+    name: 'Error',
+    component: () => import('@/views/ErrorView.vue'),
+    props: true,
+    meta: { hideHeader: true },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/error/404',
   },
 ];
 
