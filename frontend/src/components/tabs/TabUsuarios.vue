@@ -1,13 +1,24 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
+import userService from '@/services/user.service';
+import UserModal from '../UserModal.vue';
 import { useAuthStore } from '@/stores/authStore';
-import userService from '@/services/user.service'; // Importa el servicio
+
+const users = ref([]);
+const isLoading = ref(true);
+const isEdit = ref(false);
 
 const authStore = useAuthStore();
-const users = ref([]); // Variable para guardar la lista
-const isLoading = ref(true);
 
-// Función para cargar los usuarios
+const form = ref({
+  id: null,
+  email: '',
+  first_name: '',
+  last_name: '',
+  password: '',
+  role: 'viewer',
+});
+
 const loadUsers = async () => {
   try {
     isLoading.value = true;
@@ -19,78 +30,184 @@ const loadUsers = async () => {
   }
 };
 
-// Ejecutar al montar el componente
-onMounted(() => {
-  loadUsers();
-});
-
-// Helper para colores de estado (ahora recibe al usuario como parámetro)
-const getStatusClass = (user) => {
-  return user.is_active ? 'bg-success' : 'bg-secondary';
+const openCreate = () => {
+  isEdit.value = false;
+  form.value = { id: null, email: '', first_name: '', last_name: '', password: '', role: 'viewer' };
 };
+
+const openEdit = (user) => {
+  isEdit.value = true;
+  form.value = {
+    ...user,
+    password: '',
+  };
+};
+
+const isCurrentUser = (rowUserId) => {
+  if (!authStore.user) return false;
+  return authStore.user.profile_id === rowUserId;
+};
+
+const handleSave = async () => {
+  try {
+    if (isEdit.value) {
+      await userService.editUser(form.value);
+    } else {
+      await userService.createUser(form.value);
+    }
+    await loadUsers();
+  } catch (error) {
+    alert('Error: ' + (error.response?.data?.detail || 'No se pudo procesar la solicitud'));
+  }
+};
+
+const handleDelete = async (user) => {
+  // Confirmación nativa del navegador (puedes usar SweetAlert2 si quieres algo más pro)
+  const confirmed = confirm(`¿Estás seguro de que quieres eliminar a ${user.first_name}?`);
+
+  if (confirmed) {
+    try {
+      await userService.deleteUser(user.id);
+      await loadUsers();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al eliminar usuario');
+    }
+  }
+};
+
+onMounted(loadUsers);
 </script>
 
 <template>
   <div class="card border-0 shadow-sm rounded-4 p-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h5 class="fw-bold m-0">Gestión de Usuarios</h5>
-      <button class="btn btn-primary btn-sm rounded-pill px-3">
-        <i class="bi bi-plus"></i> Nuevo Usuario
+      <div>
+        <h5 class="fw-bold m-0">Gestión de Usuarios</h5>
+        <p class="text-muted small m-0">Administra los accesos y roles del sistema</p>
+      </div>
+      <button
+        class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#userModal"
+        @click="openCreate"
+      >
+        <i class="bi bi-person-plus-fill me-1"></i> Nuevo Usuario
       </button>
     </div>
 
     <div class="table-responsive">
-      <table class="table align-middle">
+      <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th>Nombre</th>
-            <th>Email</th>
-            <th>Rol</th>
-            <th>Estado</th>
-            <th>Acciones</th>
+            <th class="border-0 rounded-start ps-3">Usuario</th>
+            <th class="border-0">Email</th>
+            <th class="border-0">Rol</th>
+            <th class="border-0">Estado</th>
+            <th class="border-0 rounded-end text-end pe-3">Acciones</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="isLoading">
-            <td colspan="5" class="text-center py-4">
+            <td colspan="5" class="text-center py-5">
               <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
               <span class="ms-2">Cargando usuarios...</span>
             </td>
           </tr>
 
           <tr v-for="user in users" :key="user.id">
-            <td>
+            <td class="ps-3">
               <div class="d-flex align-items-center">
                 <div
-                  class="avatar-sm me-2 bg-light rounded-circle text-center"
-                  style="width: 32px; height: 32px; line-height: 32px"
+                  class="avatar-sm bg-light rounded-circle d-flex align-items-center justify-content-center me-2"
+                  style="width: 32px; height: 32px"
                 >
-                  {{ user.first_name.charAt(0) }}{{ user.last_name.charAt(0) }}
+                  <i class="bi bi-person text-primary"></i>
                 </div>
-                {{ user.first_name }} {{ user.last_name }}
+                <span class="fw-medium">{{ user.first_name }} {{ user.last_name }}</span>
               </div>
             </td>
             <td>{{ user.email }}</td>
             <td>
-              <span class="badge bg-primary-subtle text-primary text-capitalize">
-                {{ user.role || 'Usuario' }}
+              <span
+                class="badge rounded-pill text-capitalize"
+                :class="
+                  user.role === 'admin'
+                    ? 'bg-primary-subtle text-primary'
+                    : 'bg-light text-dark border'
+                "
+              >
+                {{ user.role }}
               </span>
             </td>
             <td>
-              <span class="badge text-capitalize" :class="getStatusClass(user)">
-                {{ user.is_active ? 'Activa' : 'Inactiva' }}
-              </span>
+              <span
+                v-if="user.is_active"
+                class="badge bg-success-subtle text-success border border-success-subtle"
+                >Activo</span
+              >
+              <span v-else class="badge bg-danger-subtle text-danger border border-danger-subtle"
+                >Inactivo</span
+              >
             </td>
-            <td>
-              <button class="btn btn-light btn-sm border">Editar</button>
+            <td class="text-end pe-3">
+              <button
+                class="btn btn-outline-secondary btn-sm rounded-pill px-3 me-1"
+                data-bs-toggle="modal"
+                data-bs-target="#userModal"
+                @click="openEdit(user)"
+                :disabled="isCurrentUser(user.id)"
+                :class="{ 'opacity-50': isCurrentUser(user.id) }"
+              >
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button
+                @click="handleDelete(user)"
+                class="btn btn-outline-danger btn-sm rounded-pill px-3"
+                :disabled="isCurrentUser(user.id)"
+                :class="{ 'opacity-50': isCurrentUser(user.id) }"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
             </td>
           </tr>
 
           <tr v-if="!isLoading && users.length === 0">
-            <td colspan="5" class="text-center text-muted py-4">No se encontraron usuarios.</td>
+            <td colspan="5" class="text-center py-4 text-muted">No se encontraron usuarios.</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <UserModal :formData="form" :isEdit="isEdit" @save="handleSave" />
   </div>
 </template>
+
+<style scoped>
+.table thead th {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  color: #6c757d;
+  background-color: #f8f9fa;
+}
+
+.avatar-sm {
+  font-size: 0.9rem;
+}
+
+.badge {
+  font-weight: 600;
+  padding: 0.5em 0.8em;
+}
+
+.bg-primary-subtle {
+  background-color: #e7f1ff;
+}
+.bg-success-subtle {
+  background-color: #e1f7ec;
+}
+.bg-danger-subtle {
+  background-color: #feecef;
+}
+</style>

@@ -17,7 +17,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="container">
+  <main class="container-lg">
     <Header
       v-if="route.path !== '/login'"
       :is-ready="isReady"
