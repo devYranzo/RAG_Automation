@@ -10,6 +10,12 @@ const routes = [
     meta: { hideHeader: true },
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/RegisterView.vue'),
+    meta: { hideHeader: true },
+  },
+  {
     path: '/',
     name: 'Home',
     component: () => import('@/views/HomeView.vue'),
@@ -45,6 +51,7 @@ const router = createRouter({
   routes,
 });
 
+// Global Guard
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   const { fetchProfile } = useAuth();
@@ -67,7 +74,6 @@ router.beforeEach(async (to) => {
 
     if (!to.meta.allowedRoles.includes(userRole)) {
       console.warn(`Acceso denegado a ${to.path}. Rol requerido: ${to.meta.allowedRoles}`);
-      // Redirigir a Home o a una página de "No autorizado"
       return { path: '/' };
     }
   }

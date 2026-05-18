@@ -14,7 +14,7 @@ defineProps({
           <div class="text-center h-100 d-flex flex-column justify-content-between">
             <div class="pt-5">
               <h1 class="card-title fw-bolder display-5 m-0">
-                <span class="text-danger">{{ titlePrimary }}</span> {{ titleSecondary }}
+                <span class="text-primary">{{ titlePrimary }}</span> {{ titleSecondary }}
               </h1>
               <p class="lead text-muted">{{ subtitle }}</p>
             </div>

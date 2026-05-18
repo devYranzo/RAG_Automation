@@ -1,5 +1,5 @@
 <script setup>
-import AuthLayout from '@/components/AuthLayout.vue'; // Importamos el layout
+import AuthLayout from '@/components/AuthLayout.vue';
 import { useAuth } from '@/composables/useAuth';
 import { reactive } from 'vue';
 
@@ -63,6 +63,12 @@ const handleLogin = async () => {
         <button type="submit" :disabled="loading" class="btn btn-primary btn-lg">
           {{ loading ? 'Signing In...' : 'Sign In' }}
         </button>
+        <div class="d-block mt-3 text-primary small">
+          <span class="text-muted me-1">Don't have an account?</span>
+          <router-link to="/register" class="text-decoration-none">
+            <b>Sign Up</b>
+          </router-link>
+        </div>
       </div>
 
       <div v-if="error" class="alert alert-danger mt-3 mb-0">

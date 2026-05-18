@@ -41,6 +41,22 @@ export function useAuth() {
     }
   };
 
+  const register = async (formData) => {
+    loading.value = true;
+    errorMessage.value = '';
+
+    try {
+      await authService.register(formData);
+
+      router.push({ name: 'Login', query: { registered: 'success' } });
+    } catch (error) {
+      errorMessage.value =
+        error.response?.data?.detail || 'Something went wrong during registration.';
+    } finally {
+      loading.value = false;
+    }
+  };
+
   /**
    * Logout:
    */
@@ -73,6 +89,7 @@ export function useAuth() {
     loading,
     error,
     login,
+    register,
     logout,
     fetchProfile,
     user: computed(() => authStore.user),

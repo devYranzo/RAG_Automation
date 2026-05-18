@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from database.db import Base
 
@@ -12,8 +12,10 @@ class User(Base):
 
     is_active = Column(Boolean, default=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     profile = relationship(
         "Profile",
@@ -21,3 +23,5 @@ class User(Base):
         uselist=False,
         cascade="all, delete"
     )
+
+    organization = relationship("Organization", back_populates="users")

@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
-from schemas.auth import LoginRequest, RegisterRequest, UserResponse
-from services.auth_service import register_user, authenticate_user
+from schemas.auth import LoginRequest
+from schemas.organization import CompanyRegister
+
+from services.auth_service import authenticate_user, register_new_company
 from core.security import require_any_user
 from database.db import SessionLocal
 
@@ -16,12 +19,9 @@ async def get_db():
 
 
 # REGISTER
-@router.post("/register", response_model=UserResponse, dependencies=[Depends(require_any_user)])
-async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
-
-    user = await register_user(db, data.email, data.password, data.first_name, data.last_name)
-
-    return user
+@router.post("/register-company")
+async def register_company(payload: CompanyRegister, db: Session = Depends(get_db)):
+    return register_new_company(db=db, payload=payload)
 
 
 # LOGIN
