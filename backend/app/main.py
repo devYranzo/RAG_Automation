@@ -5,10 +5,11 @@ from fastapi.staticfiles import StaticFiles
 
 from config import settings
 from routes import auth, index, search, system, file_manager, profile, users
-from database.db import Base, engine
+from database.db import engine
 from database.seeders import run_seeders
 from models.user import User
 from models.profile import Profile
+from models.base import Base
 
 # Lifespan
 @asynccontextmanager
