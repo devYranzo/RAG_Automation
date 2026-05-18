@@ -43,23 +43,31 @@ def _add_organization_filter(execute_state):
                 )
             )
 
+from fastapi import Request
+from jose import jwt
+from config import settings
+# Importa tu SessionLocal asíncrona
+
 async def get_db(request: Request):
     async with SessionLocal() as session:
         try:
-            # 1. Buscamos  Token en la cabecera
-            authorization: str = request.headers.get("Authorization")
+            if request:
+                token = request.cookies.get("access_token")
 
-            if authorization and authorization.startswith("Bearer "):
-                token = authorization.split(" ")[1]
-                try:
-                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-                    org_id = payload.get("organization_id")
+                if token and token.lower().startswith("bearer "):
+                    token = token.split(" ")[1]
 
-                    if org_id:
-                        session.info["organization_id"] = org_id
-                except Exception:
-                    pass
+                if token:
+                    try:
+                        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+                        org_id = payload.get("organization_id")
+
+                        if org_id:
+                            session.info["organization_id"] = org_id
+                    except Exception as jwt_error:
+                        print(f"--- Error decodificando la cookie JWT en get_db: {jwt_error} ---")
 
             yield session
+
         finally:
             await session.close()

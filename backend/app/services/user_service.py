@@ -37,10 +37,13 @@ async def get_user_by_email(db: AsyncSession, email: str):
     return result.scalar_one_or_none()
 
 async def create_user_with_profile(db: AsyncSession, user_in: UserCreate):
+    current_org_id = db.info.get("organization_id")
+
     new_user = User(
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
         is_active=True,
+        organization_id=current_org_id
     )
     db.add(new_user)
     await db.flush()
