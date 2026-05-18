@@ -6,7 +6,7 @@ export default {
   },
 
   async register(formData) {
-    return await api.post('/auth/register', formData);
+    return await api.post('/auth/register-company', formData);
   },
 
   async logout() {

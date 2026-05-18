@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.db import SessionLocal
+from database.db import get_db
 
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
@@ -8,10 +8,6 @@ from core.security import require_admin, get_current_user
 from services import user_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
-
-async def get_db():
-    async with SessionLocal() as session:
-        yield session
 
 # Get user list
 @router.get("/list", dependencies=[Depends(require_admin)])

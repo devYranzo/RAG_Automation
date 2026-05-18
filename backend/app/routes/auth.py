@@ -7,21 +7,14 @@ from schemas.organization import CompanyRegister
 
 from services.auth_service import authenticate_user, register_new_company
 from core.security import require_any_user
-from database.db import SessionLocal
+from database.db import get_db
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
-
-# DB DEPENDENCY
-async def get_db():
-    async with SessionLocal() as session:
-        yield session
-
 
 # REGISTER
 @router.post("/register-company")
 async def register_company(payload: CompanyRegister, db: Session = Depends(get_db)):
-    return register_new_company(db=db, payload=payload)
+    return await register_new_company(db=db, payload=payload)
 
 
 # LOGIN

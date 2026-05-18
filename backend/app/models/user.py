@@ -1,9 +1,9 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
-from database.db import Base
+from models.base import Base, HasOrganization
 
-class User(Base):
+class User(Base, HasOrganization):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)

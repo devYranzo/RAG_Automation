@@ -6,20 +6,29 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const currentStep = ref(1);
-const errorMessage = ref('');
 
 const { register, loading, error } = useAuth();
 
 const form = reactive({
   company_name: '',
+  first_name: '',
+  last_name: '',
   email: '',
   password: '',
 });
 
-const goToNextStep = () => {
-  if (form.company_name.trim()) {
-    errorMessage.value = '';
+// Lógica de navegación entre pasos
+const nextStep = () => {
+  if (currentStep.value === 1 && form.company_name.trim()) {
     currentStep.value = 2;
+  } else if (currentStep.value === 2 && form.first_name.trim() && form.last_name.trim()) {
+    currentStep.value = 3;
+  }
+};
+
+const prevStep = () => {
+  if (currentStep.value > 1) {
+    currentStep.value--;
   }
 };
 
@@ -40,9 +49,11 @@ const handleRegister = async () => {
   >
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h4 class="text-secondary mb-0">
-        {{ currentStep === 1 ? 'Step 1: Your Company' : 'Step 2: Admin Account' }}
+        <template v-if="currentStep === 1">Step 1: Your Company</template>
+        <template v-else-if="currentStep === 2">Step 2: Personal Info</template>
+        <template v-else>Step 3: Credentials</template>
       </h4>
-      <span class="badge bg-light text-muted border">{{ currentStep }} / 2</span>
+      <span class="badge bg-light text-muted border">{{ currentStep }} / 3</span>
     </div>
 
     <form @submit.prevent="handleRegister">
@@ -73,7 +84,7 @@ const handleRegister = async () => {
         <div class="d-grid mt-5">
           <button
             type="button"
-            @click="goToNextStep"
+            @click="nextStep"
             :disabled="!form.company_name"
             class="btn btn-primary btn-lg shadow-sm"
           >
@@ -83,6 +94,62 @@ const handleRegister = async () => {
       </div>
 
       <div v-if="currentStep === 2" class="step-animation">
+        <div class="mb-3">
+          <label for="firstName" class="form-label small fw-bold">First Name</label>
+          <div class="input-group shadow-sm">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="bi bi-person text-muted"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              v-model="form.first_name"
+              id="firstName"
+              placeholder="John"
+              required
+              autofocus
+            />
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label for="lastName" class="form-label small fw-bold">Last Name</label>
+          <div class="input-group shadow-sm">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="bi bi-person text-muted"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              v-model="form.last_name"
+              id="lastName"
+              placeholder="Doe"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="d-grid gap-2 mt-5">
+          <button
+            type="button"
+            @click="nextStep"
+            :disabled="!form.first_name || !form.last_name"
+            class="btn btn-primary btn-lg shadow-sm"
+          >
+            Continue <i class="bi bi-arrow-right ms-2"></i>
+          </button>
+
+          <button
+            type="button"
+            @click="prevStep"
+            class="btn btn-link text-muted text-decoration-none small"
+          >
+            <i class="bi bi-arrow-left me-1"></i> Back to company info
+          </button>
+        </div>
+      </div>
+
+      <div v-if="currentStep === 3" class="step-animation">
         <div class="mb-3">
           <label for="email" class="form-label small fw-bold">Admin Email address</label>
           <div class="input-group shadow-sm">
@@ -96,6 +163,7 @@ const handleRegister = async () => {
               id="email"
               placeholder="you@company.com"
               required
+              autofocus
             />
           </div>
         </div>
@@ -124,17 +192,17 @@ const handleRegister = async () => {
 
           <button
             type="button"
-            @click="currentStep = 1"
+            @click="prevStep"
             class="btn btn-link text-muted text-decoration-none small"
           >
-            <i class="bi bi-arrow-left me-1"></i> Back to company info
+            <i class="bi bi-arrow-left me-1"></i> Back to personal info
           </button>
         </div>
       </div>
 
-      <div v-if="errorMessage" class="alert alert-danger mt-3 mb-0">
+      <div v-if="error" class="alert alert-danger mt-3 mb-0">
         <i class="bi bi-exclamation-circle me-2"></i>
-        {{ errorMessage }}
+        {{ error }}
       </div>
 
       <div class="d-block mt-3 text-primary small">
@@ -148,7 +216,6 @@ const handleRegister = async () => {
 </template>
 
 <style scoped>
-/* Un pequeño efecto de transición para que no cambie de golpe */
 .step-animation {
   animation: fadeIn 0.3s ease-in-out;
 }

@@ -43,15 +43,13 @@ export function useAuth() {
 
   const register = async (formData) => {
     loading.value = true;
-    errorMessage.value = '';
 
     try {
       await authService.register(formData);
 
       router.push({ name: 'Login', query: { registered: 'success' } });
     } catch (error) {
-      errorMessage.value =
-        error.response?.data?.detail || 'Something went wrong during registration.';
+      error.response?.data?.detail || 'Something went wrong during registration.';
     } finally {
       loading.value = false;
     }

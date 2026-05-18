@@ -20,3 +20,5 @@ class CompanyRegister(BaseModel):
       max_length=64,
       description="Contraseña de acceso para la cuenta de administrador"
   )
+  first_name: str
+  last_name:str
