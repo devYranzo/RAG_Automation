@@ -55,14 +55,18 @@ class RAGEngine:
         return self._sync_engine
 
     # =========================================================
-    # INDEXING CORE
+    # INDEXING CORE (Aislado por Organización)
     # =========================================================
-    def _index_documents_sync(self):
+    def _index_documents_sync(self, org_id: int):
         self.indexing_error = None
 
         try:
+            tenant_pdf_path = os.path.join(settings.PDF_PATH, f"org_{org_id}")
+            if not os.path.exists(tenant_pdf_path):
+                os.makedirs(tenant_pdf_path, exist_ok=True)
+
             loader = DirectoryLoader(
-                settings.PDF_PATH,
+                tenant_pdf_path,
                 glob="**/*.pdf",
                 loader_cls=PyPDFLoader,
                 recursive=True
@@ -85,8 +89,9 @@ class RAGEngine:
                                 SELECT DISTINCT cmetadata->>'source'
                                 FROM langchain_pg_embedding
                                 WHERE collection_id = :uuid
+                                AND cmetadata->>'organization_id' = :org_id
                             """),
-                            {"uuid": collection_uuid}
+                            {"uuid": collection_uuid, "org_id": str(org_id)}
                         )
                         existing_ids = {row[0] for row in result}
 
@@ -114,6 +119,7 @@ class RAGEngine:
 
             for c in chunks:
                 c.page_content = c.page_content.replace("\x00", "")
+                c.metadata["organization_id"] = str(org_id)
 
             batch_size = 20
             batches = [
@@ -157,48 +163,51 @@ class RAGEngine:
     # =========================================================
     # ASYNC INDEXING
     # =========================================================
-    async def index_documents_async(self):
+    async def index_documents_async(self, org_id: int):
         if self.is_indexing:
             return {"status": "already_running"}
 
         self.is_indexing = True
 
         try:
-            result = await asyncio.to_thread(self._index_documents_sync)
+            result = await asyncio.to_thread(self._index_documents_sync, org_id)
             return {"status": "completed", "chunks": result}
         finally:
             self.is_indexing = False
 
-    def start_indexing_background(self):
+    def start_indexing_background(self, org_id: int):
         if self._indexing_task and not self._indexing_task.done():
             return {"status": "already_running"}
 
         loop = asyncio.get_event_loop()
-        self._indexing_task = loop.create_task(self.index_documents_async())
+        self._indexing_task = loop.create_task(self.index_documents_async(org_id))
 
         return {"status": "started"}
 
-    # =========================================================
-    # REINDEX
-    # =========================================================
-    async def reindex_all_documents(self):
+    # ==========================================
+    # REINDEX (Solo borra y reindexa los datos)
+    # ==========================================
+    async def reindex_all_documents(self, org_id: int):
         try:
             sync_engine = self._get_sync_engine()
             with sync_engine.connect() as conn:
-                conn.execute(text("DELETE FROM langchain_pg_embedding"))
+                conn.execute(
+                    text("DELETE FROM langchain_pg_embedding WHERE cmetadata->>'organization_id' = :org_id"),
+                    {"org_id": str(org_id)}
+                )
                 conn.commit()
 
-            return self.start_indexing_background()
+            return self.start_indexing_background(org_id)
 
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
     # =========================================================
-    # QUERY
+    # QUERY (Búsqueda Vectorial Protegida)
     # =========================================================
-    async def query(self, question: str):
+    async def query(self, question: str, org_id: int):
 
-        cache_key = question.lower().strip()
+        cache_key = f"org_{org_id}_" + question.lower().strip()
         now = time.time()
 
         if cache_key in self._query_cache:
@@ -206,11 +215,13 @@ class RAGEngine:
             if now - ts < self._cache_ttl:
                 return res
 
-        if self._retriever is None:
-            self._retriever = self.vector_store.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": 10}
-            )
+        self._retriever = self.vector_store.as_retriever(
+            search_type="similarity",
+            search_kwargs={
+                "k": 10,
+                "filter": {"organization_id": str(org_id)}
+            }
+        )
 
         try:
             docs = await asyncio.wait_for(
@@ -224,6 +235,11 @@ class RAGEngine:
         for d in docs:
             src = d.metadata.get("source", "unknown")
             relative_src = os.path.relpath(src, settings.PDF_PATH) if src != "unknown" else src
+
+            # Limpieza visual para el prompt (ej: quita el "org_1/" del inicio del nombre del archivo)
+            if relative_src.startswith(f"org_{org_id}/"):
+                relative_src = relative_src.replace(f"org_{org_id}/", "", 1)
+
             docs_by_source.setdefault(relative_src, [])
             if len(docs_by_source[relative_src]) < 2:
                 docs_by_source[relative_src].append(d.page_content)
@@ -243,7 +259,7 @@ class RAGEngine:
             FORMATO POR CANDIDATO:
             ### Nombre Completo
             [BOTON_CV:{{filename}}]
-            **Por qué encaja:** [Razón breve técnica y cultural]
+            **Por qué encaja:** [Razón técnica y cultural]
             **Experiencia:** [Años] años | [Cargo actual] | [Idiomas]
             **Skills:** [Tecnologías clave]
             **Educación:** [Titulación más alta]
@@ -278,34 +294,41 @@ class RAGEngine:
         return result
 
     # =========================================================
-    # STATS
+    # STATS (Métricas adaptadas por Organización)
     # =========================================================
-    async def get_vector_count(self):
+    async def get_vector_count(self, org_id: int):
         try:
             async with db_engine.connect() as conn:
-                res = await conn.execute(text("SELECT count(*) FROM langchain_pg_embedding"))
+                res = await conn.execute(
+                    text("SELECT count(*) FROM langchain_pg_embedding WHERE cmetadata->>'organization_id' = :org_id"),
+                    {"org_id": str(org_id)}
+                )
                 return res.scalar() or 0
         except:
             return 0
 
-    def get_total_pdf_files(self):
+    def get_total_pdf_files(self, org_id: int):
         total = 0
+        tenant_pdf_path = os.path.join(settings.PDF_PATH, f"org_{org_id}")
 
-        for root, dirs, files in os.walk(settings.PDF_PATH):
+        if not os.path.exists(tenant_pdf_path):
+            return 0
+
+        for root, dirs, files in os.walk(tenant_pdf_path):
             total += len([
                 file for file in files
                 if file.lower().endswith(".pdf")
             ])
-
         return total
 
-    async def get_indexed_documents_count(self):
+    async def get_indexed_documents_count(self, org_id: int):
         try:
             async with db_engine.connect() as conn:
                 res = await conn.execute(text("""
                     SELECT count(DISTINCT cmetadata->>'source')
                     FROM langchain_pg_embedding
-                """))
+                    WHERE cmetadata->>'organization_id' = :org_id
+                """), {"org_id": str(org_id)})
                 return res.scalar() or 0
         except:
             return 0
@@ -322,11 +345,10 @@ class RAGEngine:
             "error": self.indexing_error
         }
 
-    async def get_indexing_status_complete(self):
-        v_count = await self.get_vector_count()
-        d_count = await self.get_indexed_documents_count()
-
-        total_pdfs = self.get_total_pdf_files()
+    async def get_indexing_status_complete(self, org_id: int):
+        v_count = await self.get_vector_count(org_id)
+        d_count = await self.get_indexed_documents_count(org_id)
+        total_pdfs = self.get_total_pdf_files(org_id)
 
         return {
             **self.get_indexing_status(),
@@ -336,8 +358,8 @@ class RAGEngine:
             "total_pdfs": total_pdfs
         }
 
-    async def is_indexed(self):
-        return (await self.get_vector_count()) > 0
+    async def is_indexed(self, org_id: int):
+        return (await self.get_vector_count(org_id)) > 0
 
     def clear_cache(self):
         self._query_cache.clear()
