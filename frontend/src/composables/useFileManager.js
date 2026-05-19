@@ -74,9 +74,12 @@ export function useFileManager() {
     return `${apiClient.defaults.baseURL}/pdfs/${encodedPath}`;
   };
 
-  const openPDF = (folder, fileName) => {
-    const url = getFileUrl(folder, fileName);
-    window.open(url, '_blank');
+  const openPDF = async (folder, fileName) => {
+    try {
+      await filemanagerService.viewFile(folder, fileName);
+    } catch (error) {
+      console.error('Error al abrir el PDF desde el composable:', error);
+    }
   };
 
   return {

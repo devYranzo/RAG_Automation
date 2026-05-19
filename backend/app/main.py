@@ -37,9 +37,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files mount
-app.mount("/pdfs", StaticFiles(directory=settings.PDF_PATH), name="pdfs")
-
 # Routes
 app.include_router(auth.router)
 app.include_router(index.router)
