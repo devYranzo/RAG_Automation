@@ -8,6 +8,7 @@ from schemas.organization import CompanyRegister
 from services.auth_service import authenticate_user, register_new_company
 from core.security import require_any_user
 from database.db import get_db
+from config import settings
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -26,13 +27,15 @@ async def login(response: Response, data: LoginRequest, db: AsyncSession = Depen
     if not token:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    cookie_expiration = settings.ACCESS_TOKEN_EXPIRE_HOURS * 3600
+
     response.set_cookie(
         key="access_token",
         value=token,
         httponly=True,
         secure=True,
         samesite="lax",
-        max_age=3600,
+        max_age=cookie_expiration,
         path="/"
     )
 
