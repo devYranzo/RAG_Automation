@@ -7,6 +7,7 @@ import { useMotorStatus } from '@/composables/useMotorStatus';
 // Importar los componentes de las pestañas
 import TabGeneral from '@/components/tabs/TabGeneral.vue';
 import TabUsuarios from '@/components/tabs/TabUsuarios.vue';
+import TabAnalytics from '@/components/tabs/TabAnalytics.vue';
 
 const authStore = useAuthStore();
 const stats = ref(null);
@@ -17,6 +18,7 @@ const { motorStatus, isReady, loadingIngest, encenderMotor, reindexar, init } = 
 const tabs = {
   general: TabGeneral,
   usuarios: TabUsuarios,
+  analytics: TabAnalytics,
 };
 
 const loadStats = async () => {
@@ -56,6 +58,17 @@ onMounted(async () => {
           ]"
         >
           General
+        </button>
+      </li>
+      <li class="nav-item">
+        <button
+          @click="activeTab = 'analytics'"
+          :class="[
+            'nav-link px-4',
+            activeTab === 'analytics' ? 'active rounded-4' : 'text-secondary',
+          ]"
+        >
+          Analytics
         </button>
       </li>
       <li class="nav-item">

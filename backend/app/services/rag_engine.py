@@ -1,13 +1,16 @@
 import time
 import asyncio
 import os
+import json
+import traceback
+from datetime import datetime, timezone
 from typing import Optional
 
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
-from sqlalchemy import text, create_engine
+from sqlalchemy import text, create_engine, bindparam, JSON
 
 from config import settings
 from database import get_vector_store
@@ -136,7 +139,6 @@ class RAGEngine:
                 try:
                     self.vector_store.add_documents(batch)
 
-                    # progreso basado en CVs (no chunks)
                     self.processed_documents = min(
                         self.total_documents,
                         int((i + 1) / total_batches * self.total_documents)
@@ -185,7 +187,7 @@ class RAGEngine:
         return {"status": "started"}
 
     # ==========================================
-    # REINDEX (Solo borra y reindexa los datos)
+    # REINDEX
     # ==========================================
     async def reindex_all_documents(self, org_id: int):
         try:
@@ -203,16 +205,23 @@ class RAGEngine:
             return {"status": "error", "message": str(e)}
 
     # =========================================================
-    # QUERY (Búsqueda Vectorial Protegida)
+    # QUERY
     # =========================================================
-    async def query(self, question: str, org_id: int):
-
+    async def query(self, question: str, org_id: int, usuario_id: str = "1", usuario_nombre: str = "Usuario Sistema"):
+        start_time = time.time()
         cache_key = f"org_{org_id}_" + question.lower().strip()
         now = time.time()
 
         if cache_key in self._query_cache:
             res, ts = self._query_cache[cache_key]
             if now - ts < self._cache_ttl:
+                latencia_cache = time.time() - start_time
+                await self._registrar_metrica_en_bd(
+                    org_id=org_id, usuario_id=usuario_id, usuario_nombre=usuario_nombre,
+                    query=question, cached=True, latencia=latencia_cache,
+                    resultados_count=len(res.get("sources", [])), tokens_input=0, tokens_output=0,
+                    skills=["Caché Hit"]
+                )
                 return res
 
         self._retriever = self.vector_store.as_retriever(
@@ -236,7 +245,6 @@ class RAGEngine:
             src = d.metadata.get("source", "unknown")
             relative_src = os.path.relpath(src, settings.PDF_PATH) if src != "unknown" else src
 
-            # Limpieza visual para el prompt (ej: quita el "org_1/" del inicio del nombre del archivo)
             if relative_src.startswith(f"org_{org_id}/"):
                 relative_src = relative_src.replace(f"org_{org_id}/", "", 1)
 
@@ -277,13 +285,29 @@ class RAGEngine:
         )
 
         chain = prompt | self.llm
-
-        response = await chain.ainvoke({
-            "context": context,
-            "question": question
-        })
-
+        response = await chain.ainvoke({"context": context, "question": question})
         answer = str(response.content)
+
+        # ─── EXTRACCIÓN BLINDADA DE TOKENS (Múltiples variantes de LangChain) ───
+        t_input = 0
+        t_output = 0
+
+        # Estrategia A: response.response_metadata estándar
+        meta = getattr(response, "response_metadata", {}) or {}
+        usage = meta.get("token_usage", {}) or {}
+
+        # Estrategia B: Por si viene directo como claves en response_metadata
+        if not usage:
+            usage = meta
+
+        t_input = usage.get("prompt_tokens") or usage.get("input_tokens") or usage.get("usage", {}).get("prompt_tokens", 0)
+        t_output = usage.get("completion_tokens") or usage.get("output_tokens") or usage.get("usage", {}).get("completion_tokens", 0)
+
+        # Estrategia C: Introspección cruda de generación si todo lo anterior es 0
+        if t_input == 0 and hasattr(response, "usage_metadata"):
+            usage_meta = getattr(response, "usage_metadata", {}) or {}
+            t_input = usage_meta.get("input_tokens", 0)
+            t_output = usage_meta.get("output_tokens", 0)
 
         result = {
             "answer": answer,
@@ -291,10 +315,64 @@ class RAGEngine:
         }
 
         self._query_cache[cache_key] = (result, now)
+
+        skills_encontradas = ["RAG"]
+        keywords_skills = ["python", "javascript", "vue", "react", "sql", "aws", "docker", "node", "java", "php"]
+        for kw in keywords_skills:
+            if kw in question.lower() or kw in context.lower():
+                skills_encontradas.append(kw.upper())
+
+        latencia_total = time.time() - start_time
+
+        await self._registrar_metrica_en_bd(
+            org_id=org_id, usuario_id=usuario_id, usuario_nombre=usuario_nombre,
+            query=question, cached=False, latencia=latencia_total,
+            resultados_count=len(result["sources"]), tokens_input=t_input, tokens_output=t_output,
+            skills=list(set(skills_encontradas))
+        )
+
         return result
 
+    async def _registrar_metrica_en_bd(self, org_id, usuario_id, usuario_nombre, query, cached, latencia, resultados_count, tokens_input, tokens_output, skills):
+        try:
+            org_id_seguro = str(org_id)
+            try:
+                usuario_id_seguro = int(usuario_id) if usuario_id is not None else None
+            except (ValueError, TypeError):
+                usuario_id_seguro = None
+
+            skills_seguras = skills if (skills and isinstance(skills, list)) else ["RAG"]
+
+            stmt = text("""
+                INSERT INTO analytics_queries
+                (organization_id, usuario_id, usuario_nombre, query, cached, latencia, resultados_count, tokens_input, tokens_output, skills_detectadas, created_at)
+                VALUES (:org_id, :usuario_id, :usuario_nombre, :query, :cached, :latencia, :resultados_count, :t_input, :t_output, :skills, :created_at)
+            """).bindparams(bindparam("skills", type_=JSON))
+
+            async with db_engine.begin() as conn:
+                await conn.execute(
+                    stmt,
+                    {
+                        "org_id": org_id_seguro,
+                        "usuario_id": usuario_id_seguro,
+                        "usuario_nombre": str(usuario_nombre) if usuario_nombre else "Usuario Sistema",
+                        "query": str(query)[:255],
+                        "cached": bool(cached),
+                        "latencia": float(latencia) if latencia is not None else 0.0,
+                        "resultados_count": int(resultados_count) if resultados_count is not None else 0,
+                        "t_input": int(tokens_input),
+                        "t_output": int(tokens_output),
+                        "skills": skills_seguras,
+                        "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
+                    }
+                )
+            print(f"[SUCCESS] Métrica guardada. Tokens In: {tokens_input} | Out: {tokens_output}")
+        except Exception as e:
+            print("\n[ERROR CRÍTICO AL GUARDAR EN ANALYTICS_QUERIES]:")
+            traceback.print_exc()
+
     # =========================================================
-    # STATS (Métricas adaptadas por Organización)
+    # STATS
     # =========================================================
     async def get_vector_count(self, org_id: int):
         try:
@@ -310,15 +388,10 @@ class RAGEngine:
     def get_total_pdf_files(self, org_id: int):
         total = 0
         tenant_pdf_path = os.path.join(settings.PDF_PATH, f"org_{org_id}")
-
         if not os.path.exists(tenant_pdf_path):
             return 0
-
         for root, dirs, files in os.walk(tenant_pdf_path):
-            total += len([
-                file for file in files
-                if file.lower().endswith(".pdf")
-            ])
+            total += len([file for file in files if file.lower().endswith(".pdf")])
         return total
 
     async def get_indexed_documents_count(self, org_id: int):
@@ -336,7 +409,6 @@ class RAGEngine:
     def get_indexing_status(self):
         total = self.total_documents or 0
         processed = self.processed_documents or 0
-
         return {
             "is_indexing": self.is_indexing,
             "processed": processed,
@@ -349,7 +421,6 @@ class RAGEngine:
         v_count = await self.get_vector_count(org_id)
         d_count = await self.get_indexed_documents_count(org_id)
         total_pdfs = self.get_total_pdf_files(org_id)
-
         return {
             **self.get_indexing_status(),
             "has_data": v_count > 0,

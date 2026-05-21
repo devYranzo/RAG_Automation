@@ -32,7 +32,6 @@ def _add_organization_filter(execute_state):
     if session is not None:
         org_id = session.info.get("organization_id")
 
-        # Aplicamos el filtro si hay un ID de organización en la sesión y es un SELECT
         if org_id is not None and execute_state.is_select:
             execute_state.statement = execute_state.statement.options(
                 with_loader_criteria(
@@ -42,11 +41,6 @@ def _add_organization_filter(execute_state):
                     propagate_to_loaders=True
                 )
             )
-
-from fastapi import Request
-from jose import jwt
-from config import settings
-# Importa tu SessionLocal asíncrona
 
 async def get_db(request: Request):
     async with SessionLocal() as session:
