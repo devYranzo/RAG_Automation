@@ -42,12 +42,10 @@ onMounted(async () => {
 <template>
   <div class="container-fluid py-4">
     <div class="row mb-4">
-      <div class="col">
-        <h2 class="fw-bold m-0">Hola, {{ authStore.user?.first_name }}</h2>
-        <p class="text-muted small">Panel de administración de Talent Finder</p>
+      <div class="col d-flex">
+        <h3 class="fw-bold mb-1">Dashboard</h3>
       </div>
     </div>
-
     <ul class="nav nav-pills mb-4 p-1 bg-light rounded-4 d-inline-flex">
       <li class="nav-item">
         <button

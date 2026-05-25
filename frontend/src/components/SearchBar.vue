@@ -1,4 +1,6 @@
 <script setup>
+import { onMounted, ref } from 'vue';
+
 defineProps({
   modelValue: String,
   isReady: Boolean,
@@ -7,6 +9,30 @@ defineProps({
 });
 
 const emit = defineEmits(['update:modelValue', 'buscar']);
+
+const placeholder = ref('');
+
+const placeholders = [
+  'Ej: Ingeniero de software con 5 años de experiencia...',
+  'Ej: Diseñadora UX con enfoque en producto...',
+  'Ej: Persona con liderazgo en equipos de ventas...',
+  'Ej: Especialista en marketing digital y SEO...',
+  'Ej: Desarrollador junior con conocimientos en Vue...',
+  'Ej: Project manager en proyectos ágiles...',
+  'Ej: Experiencia en atención al cliente y soporte...',
+  'Ej: Perfil orientado a análisis de datos...',
+  'Ej: Reclutador con experiencia en IT...',
+  'Ej: Profesional con habilidades en comunicación y ventas...',
+];
+
+function changePlaceholder() {
+  const randomIndex = Math.floor(Math.random() * placeholders.length);
+  placeholder.value = placeholders[randomIndex];
+}
+
+onMounted(() => {
+  changePlaceholder();
+});
 </script>
 
 <template>
@@ -28,9 +54,7 @@ const emit = defineEmits(['update:modelValue', 'buscar']);
             @keyup.enter="$emit('buscar')"
             type="text"
             class="form-control border-0 rounded-pill shadow-none ps-2"
-            :placeholder="
-              isReady ? 'Ej: Experto en redes Cisco...' : 'Active el motor para buscar...'
-            "
+            :placeholder="isReady ? placeholder : 'Active el motor para buscar...'"
             :disabled="!isReady || loading"
             aria-label="Buscar talento por habilidades"
           />
@@ -39,7 +63,12 @@ const emit = defineEmits(['update:modelValue', 'buscar']);
             class="btn btn-primary rounded-pill px-4 mx-1 fw-bold my-1 shadow"
             :disabled="!canSearch"
           >
-            <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span
+              v-if="loading"
+              class="spinner-border spinner-border-sm me-2"
+              role="status"
+              aria-hidden="true"
+            ></span>
             {{ loading ? 'Analizando...' : 'Buscar' }}
           </button>
         </div>
