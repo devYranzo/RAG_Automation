@@ -245,9 +245,6 @@ class RAGEngine:
             src = d.metadata.get("source", "unknown")
             relative_src = os.path.relpath(src, settings.PDF_PATH) if src != "unknown" else src
 
-            if relative_src.startswith(f"org_{org_id}/"):
-                relative_src = relative_src.replace(f"org_{org_id}/", "", 1)
-
             docs_by_source.setdefault(relative_src, [])
             if len(docs_by_source[relative_src]) < 2:
                 docs_by_source[relative_src].append(d.page_content)

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db import get_db
 from services.rag_engine import rag_engine
-from core.security import require_admin
+from core.security import require_admin, require_any_user
 
 router = APIRouter(prefix="/index", tags=["Indexación"])
 
@@ -17,7 +17,7 @@ async def start_indexing(
 @router.get("/status")
 async def get_indexing_status(
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(require_admin)
+    current_user = Depends(require_any_user)
 ):
     org_id = db.info.get("organization_id")
     return await rag_engine.get_indexing_status_complete(org_id=org_id)

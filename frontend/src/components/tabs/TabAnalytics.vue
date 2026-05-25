@@ -298,7 +298,7 @@ function iniciarGraficos() {
 
   const tieneVol = volumenDiario.value?.labels?.length > 0;
   chartVolumen = new Chart(refVolumen.value, {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: tieneVol ? volumenDiario.value.labels : ['Sin datos'],
       datasets: [

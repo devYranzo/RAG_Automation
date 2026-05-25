@@ -18,7 +18,21 @@ async def query_rag(
 ):
     org_id = db.info.get("organization_id")
 
-    return await rag_engine.query(question=request.question, org_id=org_id)
+    # Get user info from the current_user object
+    usuario_id = str(current_user.id) if current_user else "1"
+    usuario_nombre = "Usuario Sistema"
+
+    if current_user and current_user.profile:
+        first_name = current_user.profile.first_name or ""
+        last_name = current_user.profile.last_name or ""
+        usuario_nombre = f"{first_name} {last_name}".strip() or "Usuario Sistema"
+
+    return await rag_engine.query(
+        question=request.question,
+        org_id=org_id,
+        usuario_id=usuario_id,
+        usuario_nombre=usuario_nombre
+    )
 
 @router.post("/cache/clear")
 async def clear_cache(

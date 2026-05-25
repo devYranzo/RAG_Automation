@@ -102,7 +102,7 @@ onMounted(() => {
         <h3 class="mb-4"><i class="bi bi-file-earmark-pdf"></i> Gestión de Candidatos</h3>
 
         <div class="card shadow-sm mb-3">
-          <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center">
             <h5 class="mb-0 px-2 py-1">Explorador de Candidatos</h5>
             <div class="d-flex gap-2">
               <button class="btn btn-sm btn-primary" @click="openUploadModal">

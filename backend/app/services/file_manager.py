@@ -117,4 +117,60 @@ class FileManager:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al recuperar el archivo: {str(e)}")
 
+    def get_pdf_file_by_relative_path(self, relative_path: str, current_org_id: int) -> FileResponse:
+        """
+        Serve PDF files using relative paths like org_1/filename.pdf or org_1/folder/filename.pdf
+        Validates that the current user has access to the organization in the path.
+        """
+        try:
+            # Parse the org_id from the path
+            path_parts = relative_path.split("/", 1)
+            if not path_parts or not path_parts[0].startswith("org_"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Ruta de archivo inválida."
+                )
+
+            org_prefix = path_parts[0]
+            try:
+                path_org_id = int(org_prefix.split("_")[1])
+            except (IndexError, ValueError):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Ruta de archivo inválida."
+                )
+
+            # Verify that the current user has access to this organization
+            if path_org_id != current_org_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="No tienes permisos para acceder a este archivo."
+                )
+
+            # Construct the full file path
+            base_storage_path = self.base_storage_path
+            file_path = os.path.join(base_storage_path, relative_path)
+
+            # Security check: ensure the resolved path is within the storage directory
+            real_path = os.path.realpath(file_path)
+            real_storage = os.path.realpath(base_storage_path)
+            if not real_path.startswith(real_storage):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Acceso denegado."
+                )
+
+            if not os.path.exists(file_path):
+                raise HTTPException(
+                    status_code=404,
+                    detail="El archivo no existe."
+                )
+
+            return FileResponse(file_path, media_type="application/pdf")
+
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al recuperar el archivo: {str(e)}")
+
 file_manager = FileManager()

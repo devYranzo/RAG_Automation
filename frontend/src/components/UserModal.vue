@@ -38,6 +38,7 @@ const emit = defineEmits(['save']);
               <label class="form-label">Rol</label>
               <select v-model="formData.role" class="form-select">
                 <option value="admin">Admin</option>
+                <option value="recruiter">Recruiter</option>
                 <option value="viewer">Viewer</option>
               </select>
             </div>

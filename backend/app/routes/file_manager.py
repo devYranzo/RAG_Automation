@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db import get_db
 from services.file_manager import file_manager
-from core.security import require_recruiter
+from core.security import require_recruiter, require_any_user
 
 router = APIRouter(prefix="/filemanager", tags=["File Manager"])
 
@@ -55,3 +55,20 @@ async def view_cv(
     org_id = db.info.get("organization_id")
 
     return file_manager.get_pdf_file_response(org_id=org_id, folder=folder, filename=filename)
+
+# PDFs endpoint - handles paths like org_1/filename.pdf or org_1/folder/filename.pdf
+pdfs_router = APIRouter(tags=["PDFs"])
+
+@pdfs_router.get("/pdfs/{file_path:path}")
+async def serve_pdf(
+    file_path: str,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(require_any_user)
+):
+    """
+    Serve PDF files from the storage. Expects paths like:
+    - org_1/filename.pdf
+    - org_1/folder/filename.pdf
+    """
+    current_org_id = db.info.get("organization_id")
+    return file_manager.get_pdf_file_by_relative_path(file_path, current_org_id=current_org_id)
