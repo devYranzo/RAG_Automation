@@ -33,19 +33,19 @@ const handleLogout = () => {
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
       <!-- LOGO -->
       <h1 class="display-6 fw-bold text-primary mb-0 pe-3 border-end">
-        <i class="bi bi-people me-2 text-dark"></i>
+        <i class="bi bi-people me-2 text-dark" aria-hidden="true"></i>
         Talent <span class="text-dark">Finder</span>
       </h1>
 
       <!-- NAV -->
-      <div class="nav nav-pills bg-light rounded-pill shadow-sm">
+      <nav class="nav nav-pills bg-light rounded-pill shadow-sm" aria-label="Navegación principal">
         <router-link
           to="/"
           v-if="authStore.requireAnyUser"
           class="nav-link rounded-pill px-4"
           :class="{ active: route.path === '/' }"
         >
-          <i class="bi bi-search me-1"></i> Buscador
+          <i class="bi bi-search me-1" aria-hidden="true"></i> Buscador
         </router-link>
 
         <router-link
@@ -54,9 +54,9 @@ const handleLogout = () => {
           class="nav-link rounded-pill px-4"
           :class="{ active: route.path === '/filemanager' }"
         >
-          <i class="bi bi-folder-fill me-1"></i> Gestión CVs
+          <i class="bi bi-folder-fill me-1" aria-hidden="true"></i> Gestión CVs
         </router-link>
-      </div>
+      </nav>
 
       <!-- ACTIONS + USER -->
       <div class="d-flex gap-2 align-items-center">
@@ -68,9 +68,10 @@ const handleLogout = () => {
             type="button"
             data-bs-toggle="dropdown"
             aria-expanded="false"
+            aria-label="Menú de usuario"
             style="width: 40px; height: 40px"
           >
-            <i class="bi bi-person-fill"></i>
+            <i class="bi bi-person-fill" aria-hidden="true"></i>
           </button>
 
           <ul class="dropdown-menu dropdown-menu-end shadow-sm">
@@ -80,13 +81,13 @@ const handleLogout = () => {
                 class="dropdown-item"
                 @click="router.push('/dashboard')"
               >
-                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                <i class="bi bi-speedometer2 me-2" aria-hidden="true"></i>Dashboard
               </button>
             </li>
 
             <li>
               <button class="dropdown-item" @click="emit('toggle-theme')">
-                <i class="bi bi-circle-half me-2"></i>Cambiar tema
+                <i class="bi bi-circle-half me-2" aria-hidden="true"></i>Cambiar tema
               </button>
             </li>
 
@@ -94,7 +95,7 @@ const handleLogout = () => {
 
             <li>
               <button class="dropdown-item text-danger" @click="handleLogout">
-                <i class="bi bi-box-arrow-right me-2"></i> Cerrar sesión
+                <i class="bi bi-box-arrow-right me-2" aria-hidden="true"></i> Cerrar sesión
               </button>
             </li>
           </ul>

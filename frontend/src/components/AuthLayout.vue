@@ -23,7 +23,7 @@ defineProps({
               <img
                 src="@/assets/images/abstract-waves.png"
                 class="img-fluid"
-                alt="Wave Image"
+                alt=""
                 style="margin-bottom: -1px"
               />
             </div>

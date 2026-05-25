@@ -121,13 +121,15 @@ onMounted(() => {
                   type="button"
                   data-bs-toggle="collapse"
                   :data-bs-target="'#id-' + slugify(folderName)"
+                  aria-expanded="false"
+                  :aria-controls="'id-' + slugify(folderName)"
                 >
-                  <i class="bi bi-folder-fill me-2 text-warning"></i>
+                  <i class="bi bi-folder-fill me-2 text-warning" aria-hidden="true"></i>
                   {{ folderName }}
                 </button>
               </h2>
 
-              <div :id="'id-' + slugify(folderName)" class="accordion-collapse collapse">
+              <div :id="'id-' + slugify(folderName)" class="accordion-collapse collapse" data-bs-parent="#cvAccordion">
                 <div class="accordion-body p-0">
                   <ul class="list-group list-group-flush">
                     <li
@@ -136,14 +138,15 @@ onMounted(() => {
                       class="list-group-item d-flex justify-content-between align-items-center py-2 px-4"
                     >
                       <div class="d-flex align-items-center">
-                        <i class="bi bi-file-earmark-pdf text-danger me-3 fs-5"></i>
+                        <i class="bi bi-file-earmark-pdf text-danger me-3 fs-5" aria-hidden="true"></i>
                         <span class="text-dark">{{ pdfName }}</span>
                       </div>
                       <button
                         class="btn btn-sm btn-outline-primary rounded-pill px-3"
                         @click="openPDF(folderName, pdfName)"
+                        :aria-label="'Ver currículum ' + pdfName"
                       >
-                        <i class="bi bi-eye me-1"></i> Ver
+                        <i class="bi bi-eye me-1" aria-hidden="true"></i> Ver
                       </button>
                     </li>
                   </ul>
@@ -161,16 +164,20 @@ onMounted(() => {
       class="modal fade show d-block"
       tabindex="-1"
       role="dialog"
+      aria-modal="true"
+      aria-labelledby="uploadModalTitle"
       style="background-color: rgba(0, 0, 0, 0.5)"
     >
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title"><i class="bi bi-cloud-arrow-up me-2"></i>Subir Currículum</h5>
+            <h5 class="modal-title" id="uploadModalTitle">
+              <i class="bi bi-cloud-arrow-up me-2" aria-hidden="true"></i>Subir Currículum
+            </h5>
             <button
               type="button"
               class="btn-close"
-              aria-label="Close"
+              aria-label="Cerrar"
               @click="closeUploadModal"
               :disabled="isUploading || isCreatingFolder"
             ></button>
@@ -179,12 +186,18 @@ onMounted(() => {
           <div class="modal-body">
             <!-- Selector de carpeta -->
             <div class="mb-3">
-              <label class="form-label"><i class="bi bi-folder"></i> Carpeta de destino</label>
+              <label v-if="!createFolderMode" for="folderSelect" class="form-label">
+                <i class="bi bi-folder" aria-hidden="true"></i> Carpeta de destino
+              </label>
+              <label v-else for="newFolderInput" class="form-label">
+                <i class="bi bi-folder" aria-hidden="true"></i> Nombre de la nueva carpeta
+              </label>
               <div class="d-flex gap-2">
                 <select
                   v-if="!createFolderMode"
                   v-model="selectedFolder"
                   class="form-select"
+                  id="folderSelect"
                   :disabled="isUploading || isCreatingFolder"
                 >
                   <option v-for="folder in folderList" :key="folder" :value="folder">
@@ -196,6 +209,7 @@ onMounted(() => {
                   v-model="newFolderName"
                   type="text"
                   class="form-control"
+                  id="newFolderInput"
                   placeholder="Nombre de la nueva carpeta"
                   :disabled="isCreatingFolder"
                 />
@@ -203,9 +217,10 @@ onMounted(() => {
                   class="btn btn-outline-secondary"
                   type="button"
                   @click="toggleCreateFolderMode"
+                  aria-label="Alternar creación de carpeta"
                   :disabled="isUploading || isCreatingFolder"
                 >
-                  <i :class="createFolderMode ? 'bi bi-x-lg' : 'bi bi-plus-lg'"></i>
+                  <i :class="createFolderMode ? 'bi bi-x-lg' : 'bi bi-plus-lg'" aria-hidden="true"></i>
                 </button>
                 <button
                   v-if="createFolderMode"
@@ -217,26 +232,31 @@ onMounted(() => {
                   <span
                     v-if="isCreatingFolder"
                     class="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
                   ></span>
-                  <i v-else class="bi bi-check-lg me-1"></i>Crear
+                  <i v-else class="bi bi-check-lg me-1" aria-hidden="true"></i>Crear
                 </button>
               </div>
             </div>
 
             <!-- Input de archivo -->
             <div class="mb-3">
-              <label class="form-label"><i class="bi bi-file-pdf"></i> Seleccionar archivo</label>
+              <label class="form-label" for="cvFileInput">
+                <i class="bi bi-file-pdf" aria-hidden="true"></i> Seleccionar archivo
+              </label>
               <input
                 type="file"
                 class="form-control"
+                id="cvFileInput"
                 ref="fileInput"
                 accept=".pdf"
                 @change="onFileSelected"
                 :disabled="isUploading || isCreatingFolder"
               />
               <small class="text-muted d-block mt-2">Solo archivos PDF. Máximo 10MB.</small>
-              <div v-if="selectedFile" class="alert alert-info mt-2 mb-0">
-                <i class="bi bi-info-circle me-2"></i>
+              <div v-if="selectedFile" class="alert alert-info mt-2 mb-0" role="status">
+                <i class="bi bi-info-circle me-2" aria-hidden="true"></i>
                 <strong>Archivo seleccionado:</strong> {{ selectedFile.name }}
               </div>
             </div>

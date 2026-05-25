@@ -26,7 +26,7 @@ const renderizarRespuesta = (texto) => {
       <div class="mt-2 mb-4">
         <button onclick="window.abrirArchivoCV('${ruta.trim()}')"
           class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3">
-          <i class="bi bi-file-earmark-pdf-fill me-1"></i> Abrir Curriculum Vitae
+          <i class="bi bi-file-earmark-pdf-fill me-1" aria-hidden="true"></i> Abrir Curriculum Vitae
         </button>
       </div>
     `
@@ -43,7 +43,7 @@ const renderizarRespuesta = (texto) => {
             class="card-header bg-primary text-white py-3 px-4 d-flex align-items-center justify-content-between"
           >
             <div class="d-flex align-items-center">
-              <i class="bi bi-stars fs-4 me-2"></i>
+              <i class="bi bi-stars fs-4 me-2" aria-hidden="true"></i>
               <h5 class="mb-0 fw-bold">Análisis del top 5 <b>Mejores Candidatos</b></h5>
             </div>
 
@@ -52,7 +52,7 @@ const renderizarRespuesta = (texto) => {
               class="btn btn-sm btn-light rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center"
               :class="{ 'btn-success text-white': copiado }"
             >
-              <i :class="['bi me-2', copiado ? 'bi-check-lg' : 'bi-clipboard-plus']"></i>
+              <i :class="['bi me-2', copiado ? 'bi-check-lg' : 'bi-clipboard-plus']" aria-hidden="true"></i>
               {{ copiado ? '¡Copiado!' : 'Copiar' }}
             </button>
           </div>

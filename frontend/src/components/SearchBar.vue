@@ -20,7 +20,7 @@ const emit = defineEmits(['update:modelValue', 'buscar']);
       >
         <div class="input-group input-group-lg">
           <span class="input-group-text bg-transparent border-0 ps-4">
-            <i class="bi bi-search text-primary opacity-50"></i>
+            <i class="bi bi-search text-primary opacity-50" aria-hidden="true"></i>
           </span>
           <input
             :value="modelValue"
@@ -32,13 +32,14 @@ const emit = defineEmits(['update:modelValue', 'buscar']);
               isReady ? 'Ej: Experto en redes Cisco...' : 'Active el motor para buscar...'
             "
             :disabled="!isReady || loading"
+            aria-label="Buscar talento por habilidades"
           />
           <button
             @click="$emit('buscar')"
             class="btn btn-primary rounded-pill px-4 mx-1 fw-bold my-1 shadow"
             :disabled="!canSearch"
           >
-            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+            <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
             {{ loading ? 'Analizando...' : 'Buscar' }}
           </button>
         </div>

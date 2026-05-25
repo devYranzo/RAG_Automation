@@ -28,7 +28,7 @@ const handleLogin = async () => {
         <label for="email" class="form-label small fw-bold">Email address</label>
         <div class="input-group">
           <span class="input-group-text bg-light border-end-0">
-            <i class="bi bi-envelope text-muted"></i>
+            <i class="bi bi-envelope text-muted" aria-hidden="true"></i>
           </span>
           <input
             type="email"
@@ -36,6 +36,7 @@ const handleLogin = async () => {
             v-model="form.email"
             id="email"
             placeholder="your@account.com"
+            autocomplete="username email"
             required
             autofocus
           />
@@ -46,7 +47,7 @@ const handleLogin = async () => {
         <label for="password" class="form-label small fw-bold">Password</label>
         <div class="input-group">
           <span class="input-group-text bg-light border-end-0">
-            <i class="bi bi-lock text-muted"></i>
+            <i class="bi bi-lock text-muted" aria-hidden="true"></i>
           </span>
           <input
             type="password"
@@ -54,6 +55,7 @@ const handleLogin = async () => {
             class="form-control border-start-0"
             id="password"
             placeholder="········"
+            autocomplete="current-password"
             required
           />
         </div>
@@ -71,8 +73,8 @@ const handleLogin = async () => {
         </div>
       </div>
 
-      <div v-if="error" class="alert alert-danger mt-3 mb-0">
-        <i class="bi bi-exclamation-circle me-2"></i>
+      <div v-if="error" class="alert alert-danger mt-3 mb-0" role="alert">
+        <i class="bi bi-exclamation-circle me-2" aria-hidden="true"></i>
         {{ error }}
       </div>
     </form>

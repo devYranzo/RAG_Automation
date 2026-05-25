@@ -1,13 +1,15 @@
 <template>
   <div>
     <div class="d-flex align-items-center gap-2 mb-4">
-      <span class="text-muted small">Período:</span>
-      <select class="form-select form-select-sm w-auto" v-model="periodo" @change="cargarDatos">
+      <label for="select-periodo" class="text-muted small">Período:</label>
+      <select id="select-periodo" class="form-select form-select-sm w-auto" v-model="periodo" @change="cargarDatos">
         <option value="7">Últimos 7 días</option>
         <option value="30">Últimos 30 días</option>
         <option value="90">Últimos 90 días</option>
       </select>
+      <label for="select-usuario" class="visually-hidden">Filtrar por usuario</label>
       <select
+        id="select-usuario"
         class="form-select form-select-sm w-auto"
         v-model="filtroUsuario"
         @change="cargarDatos"
@@ -16,7 +18,7 @@
         <option v-for="u in usuarios" :key="u.id" :value="u.nombre">{{ u.nombre }}</option>
       </select>
       <button class="btn btn-sm btn-outline-secondary ms-auto" @click="cargarDatos">
-        <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+        <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>Actualizar
       </button>
     </div>
 
@@ -24,7 +26,7 @@
       <div class="col-6 col-md-3" v-for="m in metricas" :key="m.label">
         <div class="bg-light rounded-3 p-3 shadow-sm h-100 border-0">
           <div class="text-muted small mb-1">
-            <i :class="['bi', m.icon, 'me-1']"></i>{{ m.label }}
+            <i :class="['bi', m.icon, 'me-1']" aria-hidden="true"></i>{{ m.label }}
           </div>
           <div class="fs-4 fw-bold text-dark lh-sm">{{ m.valor }}</div>
           <div class="small mt-1" :class="m.deltaPositivo ? 'text-success' : 'text-danger'">
@@ -38,19 +40,21 @@
       <div class="col-md-7">
         <div class="bg-light rounded-3 p-4 shadow-sm h-100 border-0">
           <div class="fs-6 fw-bold text-dark mb-3">
-            <i class="bi bi-bar-chart me-2"></i>Búsquedas por día
+            <i class="bi bi-bar-chart me-2" aria-hidden="true"></i>Búsquedas por día
           </div>
-          <div style="position: relative; height: 160px"><canvas ref="refVolumen"></canvas></div>
+          <div style="position: relative; height: 160px">
+            <canvas ref="refVolumen" role="img" aria-label="Gráfico de barras mostrando el volumen de búsquedas por día"></canvas>
+          </div>
         </div>
       </div>
       <div class="col-md-5">
         <div class="bg-light rounded-3 p-4 shadow-sm h-100 border-0">
           <div class="fs-6 fw-bold text-dark mb-3">
-            <i class="bi bi-pie-chart me-2"></i>Tipo de query
+            <i class="bi bi-pie-chart me-2" aria-hidden="true"></i>Tipo de query
           </div>
           <div class="d-flex align-items-center gap-3">
             <div style="position: relative; width: 120px; height: 120px; flex-shrink: 0">
-              <canvas ref="refTipo"></canvas>
+              <canvas ref="refTipo" role="img" aria-label="Gráfico circular mostrando la distribución de tipos de consultas"></canvas>
             </div>
             <div class="d-flex flex-column gap-2 w-100 small">
               <div
@@ -61,6 +65,7 @@
                 <span
                   class="rounded-1"
                   :style="{ background: i.color, width: '10px', height: '10px', flexShrink: 0 }"
+                  aria-hidden="true"
                 ></span>
                 <span class="text-secondary flex-grow-1 text-truncate">{{ i.label }}</span>
                 <span class="fw-bold text-dark">{{ i.pct }}%</span>
@@ -74,12 +79,13 @@
     <div class="bg-light rounded-3 p-4 shadow-sm mb-4 border-0">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="fs-6 fw-bold text-dark mb-0">
-          <i class="bi bi-graph-up me-2"></i>Queries más frecuentes
+          <i class="bi bi-graph-up me-2" aria-hidden="true"></i>Queries más frecuentes
         </div>
         <input
           v-model="busquedaFiltro"
           class="form-control form-control-sm w-auto"
           placeholder="Filtrar queries..."
+          aria-label="Filtrar consultas frecuentes"
           style="max-width: 180px"
         />
       </div>
@@ -93,29 +99,42 @@
               <th
                 v-for="h in ['Query', 'Habilidades', 'Búsquedas', 'Latencia', 'Caché', 'Última']"
                 :key="h"
-                @click="
-                  h === 'Query'
-                    ? sortBy('query')
-                    : h === 'Búsquedas'
-                      ? sortBy('count')
-                      : h === 'Latencia'
-                        ? sortBy('score')
-                        : null
-                "
+                scope="col"
                 :class="[
                   'py-2',
                   {
                     'text-center': h !== 'Query' && h !== 'Habilidades',
-                    'pointer-event': h === 'Query' || h === 'Búsquedas' || h === 'Latencia',
                   },
                 ]"
-                style="cursor: pointer; user-select: none"
+                :aria-sort="
+                  h === 'Query'
+                    ? (sortKey === 'query' ? (sortDir === 1 ? 'ascending' : 'descending') : 'none')
+                    : h === 'Búsquedas'
+                      ? (sortKey === 'count' ? (sortDir === 1 ? 'ascending' : 'descending') : 'none')
+                      : h === 'Latencia'
+                        ? (sortKey === 'score' ? (sortDir === 1 ? 'ascending' : 'descending') : 'none')
+                        : undefined
+                "
               >
-                {{ h }}
-                <i
+                <button
                   v-if="['Query', 'Búsquedas', 'Latencia'].includes(h)"
-                  class="bi bi-chevron-expand ms-1 text-muted"
-                ></i>
+                  type="button"
+                  @click="
+                    h === 'Query'
+                      ? sortBy('query')
+                      : h === 'Búsquedas'
+                        ? sortBy('count')
+                        : h === 'Latencia'
+                          ? sortBy('score')
+                          : null
+                  "
+                  class="btn border-0 bg-transparent p-0 fw-bold text-uppercase text-muted d-inline-flex align-items-center"
+                  style="font-size: 11px; letter-spacing: 0.04em"
+                >
+                  {{ h }}
+                  <i class="bi bi-chevron-expand ms-1 text-muted" aria-hidden="true"></i>
+                </button>
+                <span v-else>{{ h }}</span>
               </th>
             </tr>
           </thead>
@@ -170,11 +189,11 @@
       <div class="col-md-5">
         <div class="bg-light rounded-3 p-4 shadow-sm h-100 border-0">
           <div class="fs-6 fw-bold text-dark mb-3">
-            <i class="bi bi-cpu me-2"></i>Balance de Tokens (Uso)
+            <i class="bi bi-cpu me-2" aria-hidden="true"></i>Balance de Tokens (Uso)
           </div>
           <div class="d-flex align-items-center gap-4 pb-2">
             <div style="position: relative; width: 120px; height: 120px; flex-shrink: 0">
-              <canvas ref="refTokensChart"></canvas>
+              <canvas ref="refTokensChart" role="img" aria-label="Gráfico circular de balance de tokens de entrada y salida"></canvas>
             </div>
             <div class="d-flex flex-column gap-2 w-100 small">
               <div
@@ -188,6 +207,7 @@
                 <span
                   class="rounded-1"
                   :style="{ background: t.c, width: '10px', height: '10px' }"
+                  aria-hidden="true"
                 ></span>
                 <span class="text-secondary flex-grow-1">{{ t.l }}</span>
                 <span class="fw-bold text-dark text-end">{{ t.v.toLocaleString() }}</span>
@@ -199,7 +219,7 @@
       <div class="col-md-7">
         <div class="bg-light rounded-3 p-4 shadow-sm h-100 border-0">
           <div class="fs-6 fw-bold text-dark mb-3">
-            <i class="bi bi-activity me-2"></i>Actividad reciente
+            <i class="bi bi-activity me-2" aria-hidden="true"></i>Actividad reciente
           </div>
           <div class="d-flex flex-column">
             <div

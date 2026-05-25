@@ -91,7 +91,7 @@ onMounted(loadUsers);
         data-bs-target="#userModal"
         @click="openCreate"
       >
-        <i class="bi bi-person-plus-fill me-1"></i> Nuevo Usuario
+        <i class="bi bi-person-plus-fill me-1" aria-hidden="true"></i> Nuevo Usuario
       </button>
     </div>
 
@@ -99,11 +99,11 @@ onMounted(loadUsers);
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th class="border-0 rounded-start ps-3">Usuario</th>
-            <th class="border-0">Email</th>
-            <th class="border-0">Rol</th>
-            <th class="border-0">Estado</th>
-            <th class="border-0 rounded-end text-end pe-3">Acciones</th>
+            <th scope="col" class="border-0 rounded-start ps-3">Usuario</th>
+            <th scope="col" class="border-0">Email</th>
+            <th scope="col" class="border-0">Rol</th>
+            <th scope="col" class="border-0">Estado</th>
+            <th scope="col" class="border-0 rounded-end text-end pe-3">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -121,7 +121,7 @@ onMounted(loadUsers);
                   class="avatar-sm bg-light rounded-circle d-flex align-items-center justify-content-center me-2"
                   style="width: 32px; height: 32px"
                 >
-                  <i class="bi bi-person text-primary"></i>
+                  <i class="bi bi-person text-primary" aria-hidden="true"></i>
                 </div>
                 <span class="fw-medium">{{ user.first_name }} {{ user.last_name }}</span>
               </div>
@@ -157,16 +157,18 @@ onMounted(loadUsers);
                 @click="openEdit(user)"
                 :disabled="isCurrentUser(user.id)"
                 :class="{ 'opacity-50': isCurrentUser(user.id) }"
+                :aria-label="'Editar usuario ' + user.first_name + ' ' + user.last_name"
               >
-                <i class="bi bi-pencil"></i>
+                <i class="bi bi-pencil" aria-hidden="true"></i>
               </button>
               <button
                 @click="handleDelete(user)"
                 class="btn btn-outline-danger btn-sm rounded-pill px-3"
                 :disabled="isCurrentUser(user.id)"
                 :class="{ 'opacity-50': isCurrentUser(user.id) }"
+                :aria-label="'Eliminar usuario ' + user.first_name + ' ' + user.last_name"
               >
-                <i class="bi bi-trash"></i>
+                <i class="bi bi-trash" aria-hidden="true"></i>
               </button>
             </td>
           </tr>

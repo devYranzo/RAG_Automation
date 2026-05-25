@@ -17,7 +17,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="container-lg">
+  <div>
+    <a href="#main-content" class="skip-link visually-hidden-focusable">Saltar al contenido principal</a>
     <Header
       v-if="!route.meta.hideHeader"
       :is-ready="isReady"
@@ -26,8 +27,10 @@ onMounted(async () => {
       @reindexar="reindexar"
       @toggle-theme="toggleTheme"
     />
-    <router-view />
-  </main>
+    <main id="main-content" class="container-lg">
+      <router-view />
+    </main>
+  </div>
 </template>
 
 <style>

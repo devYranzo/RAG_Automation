@@ -64,7 +64,7 @@ const handleRegister = async () => {
           >
           <div class="input-group shadow-sm">
             <span class="input-group-text bg-light border-end-0">
-              <i class="bi bi-building text-muted"></i>
+              <i class="bi bi-building text-muted" aria-hidden="true"></i>
             </span>
             <input
               type="text"
@@ -72,6 +72,7 @@ const handleRegister = async () => {
               v-model="form.company_name"
               id="companyName"
               placeholder="Company name"
+              autocomplete="organization"
               required
               autofocus
             />
@@ -88,7 +89,7 @@ const handleRegister = async () => {
             :disabled="!form.company_name"
             class="btn btn-primary btn-lg shadow-sm"
           >
-            Continue <i class="bi bi-arrow-right ms-2"></i>
+            Continue <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -98,7 +99,7 @@ const handleRegister = async () => {
           <label for="firstName" class="form-label small fw-bold">First Name</label>
           <div class="input-group shadow-sm">
             <span class="input-group-text bg-light border-end-0">
-              <i class="bi bi-person text-muted"></i>
+              <i class="bi bi-person text-muted" aria-hidden="true"></i>
             </span>
             <input
               type="text"
@@ -106,6 +107,7 @@ const handleRegister = async () => {
               v-model="form.first_name"
               id="firstName"
               placeholder="John"
+              autocomplete="given-name"
               required
               autofocus
             />
@@ -116,7 +118,7 @@ const handleRegister = async () => {
           <label for="lastName" class="form-label small fw-bold">Last Name</label>
           <div class="input-group shadow-sm">
             <span class="input-group-text bg-light border-end-0">
-              <i class="bi bi-person text-muted"></i>
+              <i class="bi bi-person text-muted" aria-hidden="true"></i>
             </span>
             <input
               type="text"
@@ -124,6 +126,7 @@ const handleRegister = async () => {
               v-model="form.last_name"
               id="lastName"
               placeholder="Doe"
+              autocomplete="family-name"
               required
             />
           </div>
@@ -136,7 +139,7 @@ const handleRegister = async () => {
             :disabled="!form.first_name || !form.last_name"
             class="btn btn-primary btn-lg shadow-sm"
           >
-            Continue <i class="bi bi-arrow-right ms-2"></i>
+            Continue <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
           </button>
 
           <button
@@ -144,7 +147,7 @@ const handleRegister = async () => {
             @click="prevStep"
             class="btn btn-link text-muted text-decoration-none small"
           >
-            <i class="bi bi-arrow-left me-1"></i> Back to company info
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Back to company info
           </button>
         </div>
       </div>
@@ -154,7 +157,7 @@ const handleRegister = async () => {
           <label for="email" class="form-label small fw-bold">Admin Email address</label>
           <div class="input-group shadow-sm">
             <span class="input-group-text bg-light border-end-0">
-              <i class="bi bi-envelope text-muted"></i>
+              <i class="bi bi-envelope text-muted" aria-hidden="true"></i>
             </span>
             <input
               type="email"
@@ -162,6 +165,7 @@ const handleRegister = async () => {
               v-model="form.email"
               id="email"
               placeholder="you@company.com"
+              autocomplete="username email"
               required
               autofocus
             />
@@ -172,7 +176,7 @@ const handleRegister = async () => {
           <label for="password" class="form-label small fw-bold">Password</label>
           <div class="input-group shadow-sm">
             <span class="input-group-text bg-light border-end-0">
-              <i class="bi bi-lock text-muted"></i>
+              <i class="bi bi-lock text-muted" aria-hidden="true"></i>
             </span>
             <input
               type="password"
@@ -180,6 +184,7 @@ const handleRegister = async () => {
               class="form-control border-start-0"
               id="password"
               placeholder="········"
+              autocomplete="new-password"
               required
             />
           </div>
@@ -195,13 +200,13 @@ const handleRegister = async () => {
             @click="prevStep"
             class="btn btn-link text-muted text-decoration-none small"
           >
-            <i class="bi bi-arrow-left me-1"></i> Back to personal info
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Back to personal info
           </button>
         </div>
       </div>
 
-      <div v-if="error" class="alert alert-danger mt-3 mb-0">
-        <i class="bi bi-exclamation-circle me-2"></i>
+      <div v-if="error" class="alert alert-danger mt-3 mb-0" role="alert">
+        <i class="bi bi-exclamation-circle me-2" aria-hidden="true"></i>
         {{ error }}
       </div>
 

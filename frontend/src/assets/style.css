@@ -22,19 +22,84 @@ body {
   background-color: #212529 !important;
   color: var(--text-dark);
 }
+/* Color contrast improvements for WCAG 2.1 Level AA conformance */
+.text-muted {
+  color: #555555 !important;
+}
+
+.text-success {
+  color: #0f5132 !important; /* Meets contrast on light backgrounds (f8f9fa, ececec) */
+}
+
+.text-danger {
+  color: #842029 !important; /* Meets contrast on light backgrounds (f8f9fa, ececec) */
+}
+
+.bg-success-subtle.text-success {
+  color: #0f5132 !important;
+}
+
+.bg-danger-subtle.text-danger {
+  color: #842029 !important;
+}
+
+.bg-primary-subtle.text-primary {
+  color: #0a58ca !important;
+}
+
+.bg-light.text-secondary {
+  color: #495057 !important;
+}
+
+.nav-pills .nav-link {
+  color: #444444 !important;
+}
+
+[data-bs-theme='dark'] .text-muted {
+  color: #b0b8c0 !important;
+}
+
+[data-bs-theme='dark'] .text-success {
+  color: #75b798 !important; /* Meets contrast on dark backgrounds (313436, 212529) */
+}
+
+[data-bs-theme='dark'] .text-danger {
+  color: #ea868f !important; /* Meets contrast on dark backgrounds (313436, 212529) */
+}
+
+[data-bs-theme='dark'] .bg-success-subtle.text-success {
+  color: #a3cfbb !important;
+}
+
+[data-bs-theme='dark'] .bg-danger-subtle.text-danger {
+  color: #ea868f !important;
+}
+
+[data-bs-theme='dark'] .bg-primary-subtle.text-primary {
+  color: #6ea8fe !important;
+}
+
+[data-bs-theme='dark'] .bg-light.text-secondary {
+  color: #dee2e6 !important;
+}
+
+[data-bs-theme='dark'] .nav-pills .nav-link {
+  color: #c0c8d0 !important;
+}
 
 [data-bs-theme='dark'] .text-dark {
   color: var(--text-dark) !important;
 }
 
 [data-bs-theme='dark'] .btn-outline-secondary {
-  color: #999;
-  border-color: #666;
+  color: #cccccc;
+  border-color: #888888;
 }
 
 [data-bs-theme='dark'] .btn-outline-secondary:hover {
-  background-color: #333;
-  border-color: #999;
+  background-color: #444444;
+  border-color: #cccccc;
+  color: #ffffff;
 }
 
 [data-bs-theme='dark'] .alert {
@@ -53,3 +118,24 @@ body {
   border-color: #5a5a2d;
   color: #ffeb99;
 }
+
+/* Skip link styling for accessibility keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #0d6efd;
+  color: #ffffff !important;
+  padding: 10px 20px;
+  z-index: 9999;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: none;
+}
+
