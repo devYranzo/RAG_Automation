@@ -5,6 +5,7 @@ import { useMotorStatus } from '@/composables/useMotorStatus';
 import { useTheme } from '@/composables/useTheme';
 import { onMounted } from 'vue';
 import { useAuth } from './composables/useAuth';
+import Footer from './components/Footer.vue';
 
 const route = useRoute();
 const { isReady, encenderMotor, reindexar } = useMotorStatus();
@@ -17,8 +18,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
-    <a href="#main-content" class="skip-link visually-hidden-focusable">Saltar al contenido principal</a>
+  <div class="container-lg d-flex flex-column min-vh-100">
+    <a href="#main-content" class="skip-link visually-hidden-focusable"
+      >Saltar al contenido principal</a
+    >
     <Header
       v-if="!route.meta.hideHeader"
       :is-ready="isReady"
@@ -27,14 +30,15 @@ onMounted(async () => {
       @reindexar="reindexar"
       @toggle-theme="toggleTheme"
     />
-    <main id="main-content" class="container-lg">
+    <main id="main-content" class="flex-grow-1">
       <router-view />
     </main>
+    <Footer />
   </div>
 </template>
 
 <style>
-.container {
+.container-lg {
   max-width: 1100px;
 }
 /* Estilo para saber qué link está activo */
