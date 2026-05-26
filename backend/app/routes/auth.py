@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from schemas.auth import LoginRequest
 from schemas.organization import CompanyRegister
 
-from services.auth_service import authenticate_user, register_new_company
+from services.auth_service import authenticate_user
+from services.company.company_orchestrator import register_company_flow
+
 from core.security import require_any_user
 from database.db import get_db
 from config import settings
@@ -15,7 +17,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 # REGISTER
 @router.post("/register-company")
 async def register_company(payload: CompanyRegister, db: Session = Depends(get_db)):
-    return await register_new_company(db=db, payload=payload)
+    return await register_company_flow(db=db, payload=payload)
 
 
 # LOGIN

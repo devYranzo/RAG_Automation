@@ -58,7 +58,19 @@ async def create_user_with_profile(db: AsyncSession, user_in: UserCreate):
     db.add(new_profile)
 
     await db.commit()
-    await db.refresh(new_user)
+
+    query = (
+        select(User)
+        .options(
+            joinedload(User.profile),
+            joinedload(User.organization)
+        )
+        .where(User.id == new_user.id)
+    )
+
+    result = await db.execute(query)
+    new_user = result.scalar_one()
+
     return new_user
 
 async def update_user(db: AsyncSession, user_id: int, user_in: UserUpdate):

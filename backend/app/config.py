@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 4
 
+    """ Mail Service """
+    EMAIL_FROM: str = "no-reply@mail.enekoyranzo.dev"
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
+
     class Config:
         env_file = ".env"
         extra = "ignore"

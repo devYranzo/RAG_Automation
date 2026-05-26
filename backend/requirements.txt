@@ -25,3 +25,6 @@ pgvector
 pypdf
 sentence-transformers
 protobuf
+
+# Mail service
+resend

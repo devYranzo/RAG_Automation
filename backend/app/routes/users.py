@@ -5,7 +5,7 @@ from database.db import get_db
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
 from core.security import require_admin, get_current_user
-from services import user_service
+from services.user import user_service, user_orchestrator
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -28,7 +28,7 @@ async def create_new_user(
     if existing_user:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
 
-    return await user_service.create_user_with_profile(db, user_in)
+    return await user_orchestrator.create_user_flow(db, user_in)
 
 # 3. Editar un usuario existente
 @router.patch('/edit/{user_id}')
