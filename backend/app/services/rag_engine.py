@@ -263,8 +263,7 @@ class RAGEngine:
 
             FORMATO POR CANDIDATO:
             ### Nombre Completo
-            [BOTON_CV:{{filename}}]
-            **Por qué encaja:** [Razón técnica y cultural]
+            [BOTON_CV:{{filename}}] **Por qué encaja:** [Razón técnica y cultural]
             **Experiencia:** [Años] años | [Cargo actual] | [Idiomas]
             **Skills:** [Tecnologías clave]
             **Educación:** [Titulación más alta]

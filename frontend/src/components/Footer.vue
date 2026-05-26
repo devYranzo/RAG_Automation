@@ -173,7 +173,7 @@ No fue posible cargar el documento legal.
               </div>
 
               <!-- CONTENT -->
-              <div class="col-md-9 bg-white p-4" style="max-height: 600px; overflow-y: auto">
+              <div class="col-md-9 bg-light p-4" style="max-height: 600px; overflow-y: auto">
                 <div v-if="cargando" class="text-center py-5 text-muted">
                   <div class="spinner-border spinner-border-sm text-success me-2"></div>
                   Cargando documentación legal...

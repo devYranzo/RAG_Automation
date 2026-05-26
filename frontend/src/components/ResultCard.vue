@@ -2,7 +2,7 @@
 import MarkdownIt from 'markdown-it';
 import searchService from '@/services/search.service';
 
-const md = new MarkdownIt({ html: true, linkify: true });
+const md = new MarkdownIt({ html: true, linkify: true, breaks: true });
 
 defineProps({
   respuesta: String,
@@ -52,13 +52,23 @@ const renderizarRespuesta = (texto) => {
               class="btn btn-sm btn-light rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center"
               :class="{ 'btn-success text-white': copiado }"
             >
-              <i :class="['bi me-2', copiado ? 'bi-check-lg' : 'bi-clipboard-plus']" aria-hidden="true"></i>
+              <i
+                :class="['bi me-2', copiado ? 'bi-check-lg' : 'bi-clipboard-plus']"
+                aria-hidden="true"
+              ></i>
               {{ copiado ? '¡Copiado!' : 'Copiar' }}
             </button>
           </div>
 
-          <div class="card-body p-4 p-md-5">
+          <div class="card-body p-4 px-md-5">
             <div class="markdown-body" v-html="renderizarRespuesta(respuesta)"></div>
+          </div>
+
+          <div class="card-footer">
+            <p class="text-muted">
+              Respustas generadas por
+              <a href="https://gemini.google/about/" target="_blank">Google Gemini</a>
+            </p>
           </div>
         </div>
       </div>
