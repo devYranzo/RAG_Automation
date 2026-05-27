@@ -4,21 +4,46 @@ from fastapi import UploadFile, HTTPException
 from fastapi.responses import FileResponse
 from config import settings
 
+
 class FileManager:
     def __init__(self):
         self.base_storage_path = settings.PDF_PATH
 
+    # =========================
+    # PATH RESOLVER (NO SIDE EFFECTS)
+    # =========================
     def _get_tenant_path(self, org_id: int) -> str:
-        """Genera y asegura la ruta raíz privada para una organización específica."""
+        """Solo calcula la ruta de la organización (NO crea carpetas)."""
         if not org_id:
-            raise HTTPException(status_code=400, detail="ID de organización inválido para el almacenamiento.")
+            raise HTTPException(
+                status_code=400,
+                detail="ID de organización inválido para el almacenamiento."
+            )
 
-        tenant_path = os.path.join(self.base_storage_path, f"org_{org_id}")
-        os.makedirs(tenant_path, exist_ok=True)
-        return tenant_path
+        return os.path.join(self.base_storage_path, f"org_{org_id}")
 
+    # =========================
+    # LIFECYCLE STORAGE
+    # =========================
+    def create_org_storage(self, org_id: int) -> str:
+        """Crea la carpeta raíz de la organización."""
+        path = self._get_tenant_path(org_id)
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def delete_org_storage(self, org_id: int):
+        """Elimina completamente la carpeta de la organización."""
+        path = self._get_tenant_path(org_id)
+
+        if os.path.exists(path):
+            shutil.rmtree(path)
+
+    # =========================
+    # FILE UPLOAD
+    # =========================
     def save_upload_file(self, upload_file: UploadFile, org_id: int, folder: str = "General") -> str:
-        """Guarda un archivo subido en la carpeta especificada dentro del espacio de la organización."""
+        """Guarda un archivo PDF dentro del storage de la organización."""
+
         filename = upload_file.filename
 
         if not filename:
@@ -36,17 +61,26 @@ class FileManager:
                 folder_path = tenant_storage
 
             os.makedirs(folder_path, exist_ok=True)
+
             file_path = os.path.join(folder_path, filename)
 
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(upload_file.file, buffer)
 
             return filename
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al guardar archivo: {str(e)}")
 
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al guardar archivo: {str(e)}"
+            )
+
+    # =========================
+    # FOLDERS
+    # =========================
     def create_folder(self, folder_name: str, org_id: int) -> dict:
-        """Crea una nueva carpeta en el almacenamiento privado de la organización."""
+        """Crea una carpeta dentro de la organización."""
+
         if not folder_name or folder_name == "General":
             raise HTTPException(status_code=400, detail="Nombre de carpeta inválido.")
 
@@ -54,12 +88,20 @@ class FileManager:
             tenant_storage = self._get_tenant_path(org_id)
             folder_path = os.path.join(tenant_storage, folder_name)
             os.makedirs(folder_path, exist_ok=True)
-            return {"success": True, "message": f"Carpeta '{folder_name}' creada."}
+
+            return {
+                "success": True,
+                "message": f"Carpeta '{folder_name}' creada."
+            }
+
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al crear carpeta: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al crear carpeta: {str(e)}"
+            )
 
     def get_folders(self, org_id: int) -> list:
-        """Devuelve una lista de todas las carpetas del espacio privado de la organización."""
+        """Lista carpetas de la organización."""
         folders = set(["General"])
 
         try:
@@ -70,12 +112,17 @@ class FileManager:
                     item_path = os.path.join(target_path, item)
                     if os.path.isdir(item_path):
                         folders.add(item)
+
             return sorted(list(folders))
-        except Exception as e:
+
+        except Exception:
             return ["General"]
 
+    # =========================
+    # FILE TREE
+    # =========================
     def get_file_tree(self, org_id: int) -> dict:
-        """Devuelve el árbol de archivos PDF aislados de la organización."""
+        """Devuelve estructura de PDFs por carpeta."""
         tree = {}
 
         try:
@@ -83,19 +130,23 @@ class FileManager:
 
             for root, dirs, files in os.walk(target_path):
                 pdfs = [f for f in files if f.lower().endswith('.pdf')]
+
                 if pdfs:
                     rel_path = os.path.relpath(root, target_path)
                     folder_key = "General" if rel_path == "." else rel_path
                     tree[folder_key] = sorted(pdfs)
+
             return tree
-        except Exception as e:
+
+        except Exception:
             return {}
 
+    # =========================
+    # FILE SERVING
+    # =========================
     def get_pdf_file_response(self, org_id: int, folder: str, filename: str) -> FileResponse:
-        """
-        Busca el archivo en el almacenamiento privado del tenant
-        y devuelve un FileResponse seguro listo para el navegador.
-        """
+        """Devuelve un PDF seguro desde storage."""
+
         try:
             tenant_storage = self._get_tenant_path(org_id)
 
@@ -107,70 +158,58 @@ class FileManager:
             if not os.path.exists(file_path):
                 raise HTTPException(
                     status_code=404,
-                    detail="El archivo no existe o no tienes permisos para visualizarlo."
+                    detail="El archivo no existe o no tienes permisos."
                 )
 
             return FileResponse(file_path, media_type="application/pdf")
 
-        except HTTPException as he:
-            raise he
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al recuperar el archivo: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al recuperar el archivo: {str(e)}"
+            )
 
     def get_pdf_file_by_relative_path(self, relative_path: str, current_org_id: int) -> FileResponse:
-        """
-        Serve PDF files using relative paths like org_1/filename.pdf or org_1/folder/filename.pdf
-        Validates that the current user has access to the organization in the path.
-        """
-        try:
-            # Parse the org_id from the path
-            path_parts = relative_path.split("/", 1)
-            if not path_parts or not path_parts[0].startswith("org_"):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Ruta de archivo inválida."
-                )
+        """Serve seguro por path relativo con validación de tenant."""
 
-            org_prefix = path_parts[0]
+        try:
+            parts = relative_path.split("/", 1)
+
+            if not parts or not parts[0].startswith("org_"):
+                raise HTTPException(status_code=400, detail="Ruta inválida.")
+
+            org_prefix = parts[0]
+
             try:
                 path_org_id = int(org_prefix.split("_")[1])
             except (IndexError, ValueError):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Ruta de archivo inválida."
-                )
+                raise HTTPException(status_code=400, detail="Ruta inválida.")
 
-            # Verify that the current user has access to this organization
             if path_org_id != current_org_id:
-                raise HTTPException(
-                    status_code=403,
-                    detail="No tienes permisos para acceder a este archivo."
-                )
+                raise HTTPException(status_code=403, detail="Sin permisos.")
 
-            # Construct the full file path
-            base_storage_path = self.base_storage_path
-            file_path = os.path.join(base_storage_path, relative_path)
+            file_path = os.path.join(self.base_storage_path, relative_path)
 
-            # Security check: ensure the resolved path is within the storage directory
             real_path = os.path.realpath(file_path)
-            real_storage = os.path.realpath(base_storage_path)
-            if not real_path.startswith(real_storage):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Acceso denegado."
-                )
+            real_base = os.path.realpath(self.base_storage_path)
+
+            if not real_path.startswith(real_base):
+                raise HTTPException(status_code=403, detail="Acceso denegado.")
 
             if not os.path.exists(file_path):
-                raise HTTPException(
-                    status_code=404,
-                    detail="El archivo no existe."
-                )
+                raise HTTPException(status_code=404, detail="Archivo no existe.")
 
             return FileResponse(file_path, media_type="application/pdf")
 
-        except HTTPException as he:
-            raise he
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al recuperar el archivo: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al recuperar archivo: {str(e)}"
+            )
+
 
 file_manager = FileManager()

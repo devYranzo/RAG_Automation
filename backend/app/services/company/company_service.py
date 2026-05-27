@@ -37,3 +37,19 @@ async def create_company(db, payload):
         "user": new_user,
         "profile": new_profile
     }
+
+async def delete_company(db, org_id: int):
+
+    result = await db.execute(
+        select(Organization).where(Organization.id == org_id)
+    )
+
+    org = result.scalar_one_or_none()
+
+    if not org:
+        return False
+
+    await db.delete(org)
+    await db.commit()
+
+    return True
