@@ -46,4 +46,19 @@ onMounted(async () => {
   color: #fff !important;
   font-weight: bold;
 }
+/* Skip link accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #0d6efd;
+  color: white;
+  padding: 8px;
+  z-index: 100;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+}
+.skip-link:focus {
+  top: 0;
+}
 </style>

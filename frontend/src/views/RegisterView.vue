@@ -48,12 +48,17 @@ const handleRegister = async () => {
     subtitle="Create your workspace in seconds"
   >
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="text-secondary mb-0">
-        <template v-if="currentStep === 1">Step 1: Your Company</template>
-        <template v-else-if="currentStep === 2">Step 2: Personal Info</template>
-        <template v-else>Step 3: Credentials</template>
-      </h4>
-      <span class="badge bg-light text-muted border">{{ currentStep }} / 3</span>
+      <h1 class="text-secondary mb-0 fs-4">
+        <template v-if="currentStep === 1">Paso 1: Su Empresa</template>
+        <template v-else-if="currentStep === 2">Paso 2: Información Personal</template>
+        <template v-else>Paso 3: Credenciales</template>
+      </h1>
+      <span
+        class="badge bg-light text-muted border"
+        aria-label="Progreso del registro"
+        aria-live="polite"
+        >{{ currentStep }} de 3</span
+      >
     </div>
 
     <form @submit.prevent="handleRegister">

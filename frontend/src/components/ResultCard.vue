@@ -1,19 +1,48 @@
 <script setup>
 import MarkdownIt from 'markdown-it';
 import searchService from '@/services/search.service';
+import { ref, nextTick, watch } from 'vue';
 
 const md = new MarkdownIt({ html: true, linkify: true, breaks: true });
 
-defineProps({
+const props = defineProps({
   respuesta: String,
   copiado: Boolean,
 });
 
 defineEmits(['copiar']);
 
-window.abrirArchivoCV = (ruta) => {
+const cardBodyRef = ref(null);
+const openPdfMessage = ref('');
+
+const abrirArchivoCV = (ruta) => {
   const url = searchService.getPdfUrl(ruta);
   window.open(url, '_blank');
+  openPdfMessage.value = `Abriendo CV: ${ruta}`;
+  setTimeout(() => {
+    openPdfMessage.value = '';
+  }, 3000);
+};
+
+const setupCVButtons = () => {
+  if (!cardBodyRef.value) return;
+
+  const buttons = cardBodyRef.value.querySelectorAll('[data-cv-file]');
+  buttons.forEach((button) => {
+    // Remove existing listeners by cloning the node
+    const newButton = button.cloneNode(true);
+    const file = newButton.getAttribute('data-cv-file');
+
+    newButton.addEventListener('click', () => abrirArchivoCV(file));
+    newButton.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        abrirArchivoCV(file);
+      }
+    });
+
+    button.parentNode.replaceChild(newButton, button);
+  });
 };
 
 const renderizarRespuesta = (texto) => {
@@ -24,14 +53,24 @@ const renderizarRespuesta = (texto) => {
     regex,
     (match, ruta) => `
       <div class="mt-2 mb-4">
-        <button onclick="window.abrirArchivoCV('${ruta.trim()}')"
-          class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3">
-          <i class="bi bi-file-earmark-pdf-fill me-1" aria-hidden="true"></i> Abrir Curriculum Vitae
+        <button class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3" data-cv-file="${ruta.trim()}" type="button">
+          <i class="bi bi-file-earmark-pdf-fill me-1" aria-hidden="false"></i> Abrir Curriculum Vitae
         </button>
       </div>
     `
   );
 };
+
+// Setup buttons after content updates
+const updateButtons = async () => {
+  await nextTick();
+  setupCVButtons();
+};
+
+// Update buttons when respuesta changes
+watch(() => props.respuesta, updateButtons);
+
+defineExpose({ updateButtons });
 </script>
 
 <template>
@@ -44,11 +83,16 @@ const renderizarRespuesta = (texto) => {
           >
             <div class="d-flex align-items-center">
               <i class="bi bi-stars fs-4 me-2" aria-hidden="true"></i>
-              <h5 class="mb-0 fw-bold">Análisis del top 5 <b>Mejores Candidatos</b></h5>
+              <h2 class="mb-0 fw-bold fs-5">Top 5 Mejores Candidatos</h2>
             </div>
 
             <button
               @click="$emit('copiar')"
+              :aria-label="
+                copiado
+                  ? 'Resultados copiados al portapapeles'
+                  : 'Copiar resultados al portapapeles'
+              "
               class="btn btn-sm btn-light rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center"
               :class="{ 'btn-success text-white': copiado }"
             >
@@ -60,15 +104,15 @@ const renderizarRespuesta = (texto) => {
             </button>
           </div>
 
-          <div class="card-body p-4 px-md-5">
-            <div class="markdown-body" v-html="renderizarRespuesta(respuesta)"></div>
-          </div>
-
-          <div class="card-footer">
-            <p class="text-muted">
-              Respustas generadas por
-              <a href="https://gemini.google/about/" target="_blank">Google Gemini</a>
-            </p>
+          <div class="card-body p-4 px-md-5" ref="cardBodyRef">
+            <div aria-live="polite" aria-atomic="true" class="visually-hidden">
+              {{ openPdfMessage }}
+            </div>
+            <div
+              class="markdown-body"
+              v-html="renderizarRespuesta(respuesta)"
+              @update="updateButtons"
+            ></div>
           </div>
         </div>
       </div>
@@ -99,11 +143,6 @@ const renderizarRespuesta = (texto) => {
   margin-right: 10px;
 }
 
-.markdown-body:deep(strong) {
-  color: #2c3e50;
-  font-weight: 700;
-}
-
 .markdown-body:deep(ul) {
   padding-left: 1.2rem;
   margin-bottom: 1.5rem;
@@ -112,24 +151,6 @@ const renderizarRespuesta = (texto) => {
 .markdown-body:deep(li) {
   margin-bottom: 0.4rem;
   position: relative;
-}
-
-.btn-light {
-  background-color: rgba(255, 255, 255, 0.9);
-  border: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-light:hover {
-  background-color: #ffffff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.btn-success {
-  background-color: #28a745 !important;
-  border-color: #28a745 !important;
-  animation: pulse 0.4s ease-in-out;
 }
 
 @keyframes pulse {

@@ -3,7 +3,7 @@
     <div class="text-start">
       <h2 class="display-3 fw-bold text-danger mb-3">{{ errorCode }}</h2>
 
-      <h3 class="fw-bold text-dark">{{ errorConfig.title }}</h3>
+      <h3 class="fw-bold">{{ errorConfig.title }}</h3>
       <p class="text-muted mb-5">
         {{ errorConfig.message }}
       </p>

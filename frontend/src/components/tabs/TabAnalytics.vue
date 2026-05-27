@@ -2,7 +2,12 @@
   <div>
     <div class="d-flex align-items-center gap-2 mb-4">
       <label for="select-periodo" class="text-muted small">Período:</label>
-      <select id="select-periodo" class="form-select form-select-sm w-auto" v-model="periodo" @change="cargarDatos">
+      <select
+        id="select-periodo"
+        class="form-select form-select-sm w-auto"
+        v-model="periodo"
+        @change="cargarDatos"
+      >
         <option value="7">Últimos 7 días</option>
         <option value="30">Últimos 30 días</option>
         <option value="90">Últimos 90 días</option>
@@ -28,7 +33,7 @@
           <div class="text-muted small mb-1">
             <i :class="['bi', m.icon, 'me-1']" aria-hidden="true"></i>{{ m.label }}
           </div>
-          <div class="fs-4 fw-bold text-dark lh-sm">{{ m.valor }}</div>
+          <div class="fs-4 fw-bold lh-sm">{{ m.valor }}</div>
           <div class="small mt-1" :class="m.deltaPositivo ? 'text-success' : 'text-danger'">
             {{ m.delta }}
           </div>
@@ -39,22 +44,30 @@
     <div class="row g-3 mb-4">
       <div class="col-md-7">
         <div class="bg-light rounded-3 p-4 shadow-sm h-100 border-0">
-          <div class="fs-6 fw-bold text-dark mb-3">
+          <div class="fs-6 fw-bold mb-3">
             <i class="bi bi-bar-chart me-2" aria-hidden="true"></i>Búsquedas por día
           </div>
           <div style="position: relative; height: 160px">
-            <canvas ref="refVolumen" role="img" aria-label="Gráfico de barras mostrando el volumen de búsquedas por día"></canvas>
+            <canvas
+              ref="refVolumen"
+              role="img"
+              aria-label="Gráfico de barras mostrando el volumen de búsquedas por día"
+            ></canvas>
           </div>
         </div>
       </div>
       <div class="col-md-5">
         <div class="bg-light rounded-3 p-4 shadow-sm h-100 border-0">
-          <div class="fs-6 fw-bold text-dark mb-3">
+          <div class="fs-6 fw-bold mb-3">
             <i class="bi bi-pie-chart me-2" aria-hidden="true"></i>Tipo de query
           </div>
           <div class="d-flex align-items-center gap-3">
             <div style="position: relative; width: 120px; height: 120px; flex-shrink: 0">
-              <canvas ref="refTipo" role="img" aria-label="Gráfico circular mostrando la distribución de tipos de consultas"></canvas>
+              <canvas
+                ref="refTipo"
+                role="img"
+                aria-label="Gráfico circular mostrando la distribución de tipos de consultas"
+              ></canvas>
             </div>
             <div class="d-flex flex-column gap-2 w-100 small">
               <div
@@ -68,7 +81,7 @@
                   aria-hidden="true"
                 ></span>
                 <span class="text-secondary flex-grow-1 text-truncate">{{ i.label }}</span>
-                <span class="fw-bold text-dark">{{ i.pct }}%</span>
+                <span class="fw-bold">{{ i.pct }}%</span>
               </div>
             </div>
           </div>
@@ -78,7 +91,7 @@
 
     <div class="bg-light rounded-3 p-4 shadow-sm mb-4 border-0">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="fs-6 fw-bold text-dark mb-0">
+        <div class="fs-6 fw-bold mb-0">
           <i class="bi bi-graph-up me-2" aria-hidden="true"></i>Queries más frecuentes
         </div>
         <input
@@ -108,11 +121,23 @@
                 ]"
                 :aria-sort="
                   h === 'Query'
-                    ? (sortKey === 'query' ? (sortDir === 1 ? 'ascending' : 'descending') : 'none')
+                    ? sortKey === 'query'
+                      ? sortDir === 1
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
                     : h === 'Búsquedas'
-                      ? (sortKey === 'count' ? (sortDir === 1 ? 'ascending' : 'descending') : 'none')
+                      ? sortKey === 'count'
+                        ? sortDir === 1
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
                       : h === 'Latencia'
-                        ? (sortKey === 'score' ? (sortDir === 1 ? 'ascending' : 'descending') : 'none')
+                        ? sortKey === 'score'
+                          ? sortDir === 1
+                            ? 'ascending'
+                            : 'descending'
+                          : 'none'
                         : undefined
                 "
               >
@@ -141,7 +166,7 @@
           <tbody>
             <tr v-for="q in queriesFiltradas" :key="q.id">
               <td>
-                <div class="fw-semibold text-dark text-truncate" style="max-width: 260px">
+                <div class="fw-semibold text-truncate" style="max-width: 260px">
                   {{ q.query }}
                 </div>
                 <div class="text-muted extra-small" style="font-size: 11px">{{ q.usuario }}</div>
@@ -161,7 +186,7 @@
                   >+{{ q.skills.length - 3 }}</span
                 >
               </td>
-              <td class="text-center fw-semibold text-dark">{{ q.count }}</td>
+              <td class="text-center fw-semibold">{{ q.count }}</td>
               <td class="text-center text-muted fw-semibold">{{ q.score.toFixed(2) }}s</td>
               <td class="text-center">
                 <span
@@ -188,12 +213,16 @@
     <div class="row g-3">
       <div class="col-md-5">
         <div class="bg-light rounded-3 p-4 shadow-sm h-100 border-0">
-          <div class="fs-6 fw-bold text-dark mb-3">
+          <div class="fs-6 fw-bold mb-3">
             <i class="bi bi-cpu me-2" aria-hidden="true"></i>Balance de Tokens (Uso)
           </div>
           <div class="d-flex align-items-center gap-4 pb-2">
             <div style="position: relative; width: 120px; height: 120px; flex-shrink: 0">
-              <canvas ref="refTokensChart" role="img" aria-label="Gráfico circular de balance de tokens de entrada y salida"></canvas>
+              <canvas
+                ref="refTokensChart"
+                role="img"
+                aria-label="Gráfico circular de balance de tokens de entrada y salida"
+              ></canvas>
             </div>
             <div class="d-flex flex-column gap-2 w-100 small">
               <div
@@ -210,7 +239,7 @@
                   aria-hidden="true"
                 ></span>
                 <span class="text-secondary flex-grow-1">{{ t.l }}</span>
-                <span class="fw-bold text-dark text-end">{{ t.v.toLocaleString() }}</span>
+                <span class="fw-bold text-end">{{ t.v.toLocaleString() }}</span>
               </div>
             </div>
           </div>
@@ -218,7 +247,7 @@
       </div>
       <div class="col-md-7">
         <div class="bg-light rounded-3 p-4 shadow-sm h-100 border-0">
-          <div class="fs-6 fw-bold text-dark mb-3">
+          <div class="fs-6 fw-bold mb-3">
             <i class="bi bi-activity me-2" aria-hidden="true"></i>Actividad reciente
           </div>
           <div class="d-flex flex-column">
@@ -234,7 +263,7 @@
                 {{ initials(a.usuario) }}
               </div>
               <div class="flex-grow-1 min-w-0">
-                <div class="text-dark fw-semibold text-truncate small">{{ a.query }}</div>
+                <div class="fw-semibold text-truncate small">{{ a.query }}</div>
                 <div class="text-muted extra-small text-truncate" style="font-size: 11px">
                   {{ a.usuario }} · {{ a.hace }} · {{ a.resultados }} candidatos
                 </div>

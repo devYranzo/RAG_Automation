@@ -33,8 +33,8 @@ const handleLogout = () => {
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
       <!-- LOGO -->
       <h1 class="display-6 fw-bold text-primary mb-0 pe-3 border-end">
-        <i class="bi bi-people me-2 text-dark" aria-hidden="true"></i>
-        Talent <span class="text-dark">Finder</span>
+        <i class="bi bi-people me-2 text-body" aria-hidden="true"></i>
+        Talent <span class="text-body">Finder</span>
       </h1>
 
       <!-- NAV -->
@@ -60,7 +60,9 @@ const handleLogout = () => {
 
       <!-- ACTIONS + USER -->
       <div class="d-flex gap-2 align-items-center">
-        <span class="badge bg-primary text-capitalize">{{ authStore.user?.role }}</span>
+        <span class="badge bg-primary text-capitalize" role="status" aria-label="Rol de usuario">{{
+          authStore.user?.role
+        }}</span>
         <!-- USER DROPDOWN -->
         <div class="dropdown">
           <button
@@ -68,7 +70,7 @@ const handleLogout = () => {
             type="button"
             data-bs-toggle="dropdown"
             aria-expanded="false"
-            aria-label="Menú de usuario"
+            :aria-label="`Menú de usuario ${authStore.user?.profile?.first_name || 'Usuario'}`"
             style="width: 40px; height: 40px"
           >
             <i class="bi bi-person-fill" aria-hidden="true"></i>
@@ -86,7 +88,11 @@ const handleLogout = () => {
             </li>
 
             <li>
-              <button class="dropdown-item" @click="emit('toggle-theme')">
+              <button
+                class="dropdown-item"
+                @click="emit('toggle-theme')"
+                :aria-label="`Cambiar a tema ${isDark ? 'claro' : 'oscuro'}`"
+              >
                 <i class="bi bi-circle-half me-2" aria-hidden="true"></i>Cambiar tema
               </button>
             </li>

@@ -24,6 +24,17 @@ const fileInput = ref(null);
 const newFolderName = ref('');
 const createFolderMode = ref(false);
 const showUploadModal = ref(false);
+const statusMessage = ref('');
+const statusType = ref(''); // 'success', 'error', or ''
+
+const showStatus = (message, type = 'success') => {
+  statusMessage.value = message;
+  statusType.value = type;
+  setTimeout(() => {
+    statusMessage.value = '';
+    statusType.value = '';
+  }, 4000);
+};
 
 const openUploadModal = () => {
   showUploadModal.value = true;
@@ -44,16 +55,17 @@ const resetUploadForm = () => {
 
 const handleUploadFile = async () => {
   if (!selectedFile.value) {
-    alert('Por favor, selecciona un archivo.');
+    showStatus('Por favor, selecciona un archivo.', 'error');
     return;
   }
 
   try {
     await uploadFile(selectedFile.value, selectedFolder.value);
     closeUploadModal();
-    alert('¡Archivo subido con éxito!');
+    showStatus(`¡Archivo "${selectedFile.value.name}" subido con éxito!`, 'success');
+    await fetchFiles();
   } catch (error) {
-    alert('Error al subir el archivo.');
+    showStatus('Error al subir el archivo.', 'error');
   }
 };
 
@@ -64,7 +76,7 @@ const toggleCreateFolderMode = () => {
 
 const handleCreateNewFolder = async () => {
   if (!newFolderName.value.trim()) {
-    alert('Por favor, ingresa un nombre para la carpeta.');
+    showStatus('Por favor, ingresa un nombre para la carpeta.', 'error');
     return;
   }
 
@@ -73,9 +85,11 @@ const handleCreateNewFolder = async () => {
     selectedFolder.value = result.folderName;
     newFolderName.value = '';
     createFolderMode.value = false;
-    alert('¡Carpeta creada con éxito!');
+    showStatus(`¡Carpeta "${result.folderName}" creada con éxito!`, 'success');
+    await fetchFolders();
+    await fetchFiles();
   } catch (error) {
-    alert('Error al crear la carpeta.');
+    showStatus('Error al crear la carpeta.', 'error');
   }
 };
 
@@ -97,19 +111,47 @@ onMounted(() => {
 
 <template>
   <div class="container mt-4">
+    <!-- Status Message with ARIA -->
+    <div
+      v-if="statusMessage"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      :class="['alert mb-3', statusType === 'success' ? 'alert-success' : 'alert-danger']"
+    >
+      <i
+        :class="[
+          'bi',
+          statusType === 'success' ? 'bi-check-circle me-2' : 'bi-exclamation-circle me-2',
+        ]"
+        aria-hidden="true"
+      ></i>
+      {{ statusMessage }}
+    </div>
+
     <div class="row">
       <div class="col-12">
-        <h3 class="mb-4"><i class="bi bi-file-earmark-pdf"></i> Gestión de Candidatos</h3>
+        <h1 class="mb-4 fs-5">
+          <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Gestión de Candidatos
+        </h1>
 
         <div class="card shadow-sm mb-3">
           <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 px-2 py-1">Explorador de Candidatos</h5>
+            <h2 class="mb-0 px-2 py-1 fs-6">Explorador de Candidatos</h2>
             <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-primary" @click="openUploadModal">
-                <i class="bi bi-cloud-arrow-up"></i> Subir
+              <button
+                class="btn btn-sm btn-primary"
+                @click="openUploadModal"
+                aria-label="Subir nuevo archivo CV"
+              >
+                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Subir
               </button>
-              <button class="btn btn-sm btn-outline-secondary" @click="fetchFiles">
-                <i class="bi bi-arrow-clockwise"></i> Actualizar
+              <button
+                class="btn btn-sm btn-outline-secondary"
+                @click="fetchFiles"
+                aria-label="Actualizar lista de archivos"
+              >
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Actualizar
               </button>
             </div>
           </div>
@@ -129,7 +171,11 @@ onMounted(() => {
                 </button>
               </h2>
 
-              <div :id="'id-' + slugify(folderName)" class="accordion-collapse collapse" data-bs-parent="#cvAccordion">
+              <div
+                :id="'id-' + slugify(folderName)"
+                class="accordion-collapse collapse"
+                data-bs-parent="#cvAccordion"
+              >
                 <div class="accordion-body p-0">
                   <ul class="list-group list-group-flush">
                     <li
@@ -138,8 +184,11 @@ onMounted(() => {
                       class="list-group-item d-flex justify-content-between align-items-center py-2 px-4"
                     >
                       <div class="d-flex align-items-center">
-                        <i class="bi bi-file-earmark-pdf text-danger me-3 fs-5" aria-hidden="true"></i>
-                        <span class="text-dark">{{ pdfName }}</span>
+                        <i
+                          class="bi bi-file-earmark-pdf text-danger me-3 fs-5"
+                          aria-hidden="true"
+                        ></i>
+                        <span class="">{{ pdfName }}</span>
                       </div>
                       <button
                         class="btn btn-sm btn-outline-primary rounded-pill px-3"
@@ -220,7 +269,10 @@ onMounted(() => {
                   aria-label="Alternar creación de carpeta"
                   :disabled="isUploading || isCreatingFolder"
                 >
-                  <i :class="createFolderMode ? 'bi bi-x-lg' : 'bi bi-plus-lg'" aria-hidden="true"></i>
+                  <i
+                    :class="createFolderMode ? 'bi bi-x-lg' : 'bi bi-plus-lg'"
+                    aria-hidden="true"
+                  ></i>
                 </button>
                 <button
                   v-if="createFolderMode"

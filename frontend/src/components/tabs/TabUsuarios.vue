@@ -131,9 +131,7 @@ onMounted(loadUsers);
               <span
                 class="badge rounded-pill text-capitalize"
                 :class="
-                  user.role === 'admin'
-                    ? 'bg-primary-subtle text-primary'
-                    : 'bg-light text-dark border'
+                  user.role === 'admin' ? 'bg-primary-subtle text-primary' : 'bg-light  border'
                 "
               >
                 {{ user.role }}

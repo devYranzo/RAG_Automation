@@ -21,11 +21,11 @@ const handleLogin = async () => {
 
 <template>
   <AuthLayout title-primary="Talent" title-secondary="Finder" subtitle="Smarter hiring starts here">
-    <h4 class="text-secondary mb-4">Welcome Back</h4>
+    <h1 class="text-secondary mb-4 fs-5">Bienvenido de nuevo</h1>
 
     <form @submit.prevent="handleLogin">
       <div class="mb-3">
-        <label for="email" class="form-label small fw-bold">Email address</label>
+        <label for="email" class="form-label small fw-bold">Correo electrónico</label>
         <div class="input-group">
           <span class="input-group-text bg-light border-end-0">
             <i class="bi bi-envelope text-muted" aria-hidden="true"></i>
@@ -35,16 +35,18 @@ const handleLogin = async () => {
             class="form-control border-start-0"
             v-model="form.email"
             id="email"
-            placeholder="your@account.com"
+            placeholder="tu@correo.com"
             autocomplete="username email"
+            aria-describedby="emailHelp"
             required
             autofocus
           />
         </div>
+        <small id="emailHelp" class="form-text text-muted">Utiliza tu correo registrado</small>
       </div>
 
       <div class="mb-4">
-        <label for="password" class="form-label small fw-bold">Password</label>
+        <label for="password" class="form-label small fw-bold">Contraseña</label>
         <div class="input-group">
           <span class="input-group-text bg-light border-end-0">
             <i class="bi bi-lock text-muted" aria-hidden="true"></i>
@@ -56,26 +58,35 @@ const handleLogin = async () => {
             id="password"
             placeholder="········"
             autocomplete="current-password"
+            aria-describedby="passwordHelp"
             required
           />
         </div>
+        <small id="passwordHelp" class="form-text text-muted"
+          >Tu contraseña es privada y segura</small
+        >
       </div>
 
       <div class="d-grid">
-        <button type="submit" :disabled="loading" class="btn btn-primary btn-lg">
-          {{ loading ? 'Signing In...' : 'Sign In' }}
+        <button
+          type="submit"
+          :disabled="loading"
+          class="btn btn-primary btn-lg"
+          :aria-busy="loading"
+        >
+          {{ loading ? 'Iniciando sesión...' : 'Iniciar sesión' }}
         </button>
         <div class="d-block mt-3 text-primary small">
-          <span class="text-muted me-1">Don't have an account?</span>
+          <span class="text-muted me-1">¿No tienes cuenta?</span>
           <router-link to="/register" class="text-decoration-none">
-            <b>Sign Up</b>
+            <b>Regístrate aquí</b>
           </router-link>
         </div>
       </div>
 
       <div v-if="error" class="alert alert-danger mt-3 mb-0" role="alert">
         <i class="bi bi-exclamation-circle me-2" aria-hidden="true"></i>
-        {{ error }}
+        <strong>Error:</strong> {{ error }}
       </div>
     </form>
   </AuthLayout>

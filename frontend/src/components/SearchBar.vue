@@ -62,12 +62,14 @@ onMounted(() => {
             @click="$emit('buscar')"
             class="btn btn-primary rounded-pill px-4 mx-1 fw-bold my-1 shadow"
             :disabled="!canSearch"
+            :aria-busy="loading"
+            :aria-label="loading ? 'Buscando candidatos' : 'Buscar candidatos'"
           >
             <span
               v-if="loading"
               class="spinner-border spinner-border-sm me-2"
               role="status"
-              aria-hidden="true"
+              aria-label="Cargando"
             ></span>
             {{ loading ? 'Analizando...' : 'Buscar' }}
           </button>
