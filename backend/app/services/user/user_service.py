@@ -92,6 +92,10 @@ async def update_user(db: AsyncSession, user_id: int, user_in: UserUpdate):
             if value != db_user.email:
                 db_user.email = value
 
+        elif field == "password":
+            # Admin puede restablecer la contraseña de otro usuario
+            db_user.hashed_password = hash_password(value)
+
         elif field == "role":
             try:
                 db_user.profile.role = Role[value.capitalize()]

@@ -13,6 +13,7 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = None
     role: Optional[str] = None
     email: Optional[EmailStr] = None
+    password: Optional[str] = None  # Solo para admin: restablecer contraseña de otro usuario
 
 class UserResponse(BaseModel):
     id: int

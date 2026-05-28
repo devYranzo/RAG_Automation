@@ -2,6 +2,8 @@
 import { useAuth } from '@/composables/useAuth';
 import { useAuthStore } from '@/stores/authStore';
 import { useRoute, useRouter } from 'vue-router';
+import { ref } from 'vue';
+import ChangePasswordModal from './ChangePasswordModal.vue';
 
 const { logout } = useAuth();
 
@@ -15,9 +17,10 @@ defineProps({
 const emit = defineEmits(['toggle-theme']);
 
 const authStore = useAuthStore();
-
 const route = useRoute();
 const router = useRouter();
+
+const showChangePasswordModal = ref(false);
 
 const handleLogout = () => {
   try {
@@ -25,6 +28,10 @@ const handleLogout = () => {
   } catch (e) {
     console.error(e);
   }
+};
+
+const handlePasswordChangeSuccess = () => {
+  showChangePasswordModal.value = false;
 };
 </script>
 
@@ -88,6 +95,12 @@ const handleLogout = () => {
             </li>
 
             <li>
+              <button class="dropdown-item" @click="showChangePasswordModal = true">
+                <i class="bi bi-key me-2" aria-hidden="true"></i>Cambiar Contraseña
+              </button>
+            </li>
+
+            <li>
               <button
                 class="dropdown-item"
                 @click="emit('toggle-theme')"
@@ -108,6 +121,13 @@ const handleLogout = () => {
         </div>
       </div>
     </div>
+
+    <!-- Modal de cambio de contraseña -->
+    <ChangePasswordModal
+      v-if="showChangePasswordModal"
+      @close="showChangePasswordModal = false"
+      @success="handlePasswordChangeSuccess"
+    />
   </header>
 </template>
 

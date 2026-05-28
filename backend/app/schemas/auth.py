@@ -12,6 +12,11 @@ class RegisterRequest(BaseModel):
     last_name: str | None = None
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class UserResponse(BaseModel):
     id: int
     email: str

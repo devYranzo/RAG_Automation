@@ -16,4 +16,11 @@ export default {
   async getCurrentUserProfile() {
     return await api.get('/profile/me');
   },
+
+  async changePassword(currentPassword, newPassword) {
+    return await api.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  },
 };

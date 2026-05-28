@@ -22,8 +22,10 @@
     </div>
   </div>
 </template>
+
 <script setup>
-defineProps(['stats', 'motorStatus', 'isReady', 'loadingIngest', 'encenderMotor', 'reindexar']);
 import StatCard from '@/components/StatCard.vue';
 import IndexingPanel from '@/components/IndexingPanel.vue';
+
+defineProps(['stats', 'motorStatus', 'isReady', 'loadingIngest', 'encenderMotor', 'reindexar']);
 </script>

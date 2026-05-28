@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import userService from '@/services/user.service';
 import UserModal from '../UserModal.vue';
+import ChangeUserPasswordModal from '../ChangeUserPasswordModal.vue';
 import { useAuthStore } from '@/stores/authStore';
 
 const users = ref([]);
@@ -18,6 +19,9 @@ const form = ref({
   password: '',
   role: 'viewer',
 });
+
+const showChangePasswordModal = ref(false);
+const selectedUserForPasswordChange = ref(null);
 
 const loadUsers = async () => {
   try {
@@ -41,6 +45,14 @@ const openEdit = (user) => {
     ...user,
     password: '',
   };
+};
+
+const openChangePassword = (user) => {
+  selectedUserForPasswordChange.value = {
+    id: user.id,
+    name: `${user.first_name} ${user.last_name}`,
+  };
+  showChangePasswordModal.value = true;
 };
 
 const isCurrentUser = (rowUserId) => {
@@ -73,6 +85,10 @@ const handleDelete = async (user) => {
       alert(error.response?.data?.detail || 'Error al eliminar usuario');
     }
   }
+};
+
+const handlePasswordChangeSuccess = () => {
+  loadUsers();
 };
 
 onMounted(loadUsers);
@@ -149,6 +165,16 @@ onMounted(loadUsers);
             </td>
             <td class="text-end pe-3">
               <button
+                class="btn btn-outline-info btn-sm rounded-pill px-3 me-1"
+                @click="openChangePassword(user)"
+                :disabled="isCurrentUser(user.id)"
+                :class="{ 'opacity-50': isCurrentUser(user.id) }"
+                :aria-label="'Cambiar contraseña de ' + user.first_name + ' ' + user.last_name"
+                title="Cambiar Contraseña"
+              >
+                <i class="bi bi-key" aria-hidden="true"></i>
+              </button>
+              <button
                 class="btn btn-outline-secondary btn-sm rounded-pill px-3 me-1"
                 data-bs-toggle="modal"
                 data-bs-target="#userModal"
@@ -179,8 +205,47 @@ onMounted(loadUsers);
     </div>
 
     <UserModal :formData="form" :isEdit="isEdit" @save="handleSave" />
+
+    <!-- Modal de cambio de contraseña para admin -->
+    <ChangeUserPasswordModal
+      v-if="showChangePasswordModal && selectedUserForPasswordChange"
+      :userId="selectedUserForPasswordChange.id"
+      :userName="selectedUserForPasswordChange.name"
+      @close="showChangePasswordModal = false"
+      @success="handlePasswordChangeSuccess"
+    />
   </div>
 </template>
+
+<style scoped>
+.table thead th {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  color: #6c757d;
+  background-color: #f8f9fa;
+}
+
+.avatar-sm {
+  font-size: 0.9rem;
+}
+
+.badge {
+  font-weight: 600;
+  padding: 0.5em 0.8em;
+}
+
+.bg-primary-subtle {
+  background-color: #e7f1ff;
+}
+.bg-success-subtle {
+  background-color: #e1f7ec;
+}
+.bg-danger-subtle {
+  background-color: #feecef;
+}
+</style>
 
 <style scoped>
 .table thead th {
