@@ -23,7 +23,7 @@ async def register_company(payload: CompanyRegister, db: Session = Depends(get_d
 
 # LOGIN
 @router.post("/login")
-async def login(response: Response, data: LoginRequest, db: AsyncSession = Depends(get_db), dependencies=[Depends(require_any_user)]):
+async def login(response: Response, data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     token = await authenticate_user(db, data.email, data.password)
 

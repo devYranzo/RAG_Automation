@@ -1,5 +1,8 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from urllib.parse import urlparse
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
@@ -29,14 +32,38 @@ app = FastAPI(
 # Middlewares
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost"
-    ],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def validate_csrf_origin(request: Request, call_next):
+    unsafe_method = request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}
+    uses_cookie_auth = "access_token" in request.cookies
+
+    if unsafe_method and uses_cookie_auth:
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        source = origin or referer
+
+        if not source:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Origen de la peticion no verificable."}
+            )
+
+        parsed = urlparse(source)
+        request_origin = f"{parsed.scheme}://{parsed.netloc}"
+
+        if request_origin not in settings.ALLOWED_ORIGINS:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Origen de la peticion no permitido."}
+            )
+
+    return await call_next(request)
 
 # Routes
 app.include_router(auth.router)

@@ -11,6 +11,7 @@ from config import settings
 class FileManager:
     def __init__(self):
         self.base_storage_path = Path(settings.PDF_PATH).resolve()
+        self.max_pdf_upload_size = settings.MAX_PDF_UPLOAD_SIZE_MB * 1024 * 1024
 
     def _validate_path_segment(self, value: str | None, field_name: str) -> str:
         safe_value = (value or "").strip()
@@ -33,6 +34,12 @@ class FileManager:
             raise HTTPException(status_code=400, detail="Solo se permiten archivos PDF.")
 
         return safe_filename
+
+    def _validate_pdf_content_type(self, upload_file: UploadFile):
+        allowed_content_types = {"application/pdf", "application/x-pdf"}
+
+        if upload_file.content_type not in allowed_content_types:
+            raise HTTPException(status_code=400, detail="El archivo debe ser un PDF valido.")
 
     def _resolve_inside(self, base_path: Path, *parts: str) -> Path:
         resolved_base = base_path.resolve()
@@ -80,6 +87,8 @@ class FileManager:
     def save_upload_file(self, upload_file: UploadFile, org_id: int, folder: str = "General") -> str:
         """Guarda un archivo PDF dentro del storage de la organizacion."""
         filename = self._validate_pdf_filename(upload_file.filename)
+        self._validate_pdf_content_type(upload_file)
+        temp_file_path: Path | None = None
 
         try:
             tenant_storage = self._get_tenant_path(org_id)
@@ -92,18 +101,48 @@ class FileManager:
 
             folder_path.mkdir(parents=True, exist_ok=True)
             file_path = self._resolve_inside(folder_path, filename)
+            temp_file_path = self._resolve_inside(folder_path, f".{filename}.uploading")
 
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(upload_file.file, buffer)
+            bytes_written = 0
+            header = upload_file.file.read(5)
 
+            if header != b"%PDF-":
+                raise HTTPException(status_code=400, detail="El archivo debe ser un PDF valido.")
+
+            with open(temp_file_path, "wb") as buffer:
+                buffer.write(header)
+                bytes_written += len(header)
+
+                while True:
+                    chunk = upload_file.file.read(1024 * 1024)
+                    if not chunk:
+                        break
+
+                    bytes_written += len(chunk)
+                    if bytes_written > self.max_pdf_upload_size:
+                        buffer.close()
+                        temp_file_path.unlink(missing_ok=True)
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"El PDF no puede superar {settings.MAX_PDF_UPLOAD_SIZE_MB} MB."
+                        )
+
+                    buffer.write(chunk)
+
+            temp_file_path.replace(file_path)
             return filename
 
         except HTTPException:
+            if temp_file_path is not None:
+                temp_file_path.unlink(missing_ok=True)
             raise
         except Exception as e:
+            if temp_file_path is not None:
+                temp_file_path.unlink(missing_ok=True)
+            print(f"Error al guardar archivo PDF: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Error al guardar archivo: {str(e)}"
+                detail="Error al guardar archivo."
             )
 
     # =========================
@@ -128,9 +167,10 @@ class FileManager:
         except HTTPException:
             raise
         except Exception as e:
+            print(f"Error al crear carpeta: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Error al crear carpeta: {str(e)}"
+                detail="Error al crear carpeta."
             )
 
     def get_folders(self, org_id: int) -> list:
@@ -200,9 +240,10 @@ class FileManager:
         except HTTPException:
             raise
         except Exception as e:
+            print(f"Error al recuperar el archivo: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Error al recuperar el archivo: {str(e)}"
+                detail="Error al recuperar el archivo."
             )
 
     def get_pdf_file_by_relative_path(self, relative_path: str, current_org_id: int) -> FileResponse:
@@ -244,9 +285,10 @@ class FileManager:
         except HTTPException:
             raise
         except Exception as e:
+            print(f"Error al recuperar archivo: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Error al recuperar archivo: {str(e)}"
+                detail="Error al recuperar archivo."
             )
 
 

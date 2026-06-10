@@ -42,7 +42,8 @@ async def get_dashboard_metrics(
     except HTTPException as he:
         raise he
     except Exception as e:
+        print(f"Error interno procesando analiticas: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno procesando analíticas: {str(e)}"
+            detail="Error interno procesando analiticas."
         )

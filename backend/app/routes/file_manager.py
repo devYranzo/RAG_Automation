@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db import get_db
 from services.file_manager import file_manager
-from core.security import require_recruiter, require_any_user
+from core.security import require_recruiter
 
 router = APIRouter(prefix="/filemanager", tags=["File Manager"])
 
@@ -63,7 +63,7 @@ pdfs_router = APIRouter(tags=["PDFs"])
 async def serve_pdf(
     file_path: str,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(require_any_user)
+    current_user = Depends(require_recruiter)
 ):
     """
     Serve PDF files from the storage. Expects paths like:

@@ -202,7 +202,8 @@ class RAGEngine:
             return self.start_indexing_background(org_id)
 
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            print(f"[ERROR reindex]: {e}")
+            return {"status": "error", "message": "Error al reindexar documentos."}
 
     # =========================================================
     # QUERY

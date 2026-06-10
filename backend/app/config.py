@@ -15,9 +15,16 @@ class Settings(BaseSettings):
     PDF_PATH: str = "/storage/CVs"
 
     """ Authentication """
-    SECRET_KEY: str = Field(..., min_length=32)
+    SECRET_KEY: str = Field(default_factory=lambda: os.getenv("SECRET_KEY", ""), min_length=32)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 4
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://localhost"
+    ]
+
+    """ Uploads """
+    MAX_PDF_UPLOAD_SIZE_MB: int = 10
 
     """ Mail Service """
     EMAIL_FROM: str = "noreply@mail.enekoyranzo.dev"
