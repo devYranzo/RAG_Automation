@@ -1,9 +1,10 @@
 <script setup>
 import MarkdownIt from 'markdown-it';
+import DOMPurify from 'dompurify';
 import searchService from '@/services/search.service';
 import { ref, nextTick, watch } from 'vue';
 
-const md = new MarkdownIt({ html: true, linkify: true, breaks: true });
+const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
 
 const props = defineProps({
   respuesta: String,
@@ -49,7 +50,7 @@ const renderizarRespuesta = (texto) => {
   if (!texto) return '';
   let html = md.render(texto);
   const regex = /\[BOTON_CV:(.*?)\]/g;
-  return html.replace(
+  const htmlWithButtons = html.replace(
     regex,
     (match, ruta) => `
       <div class="mt-2 mb-4">
@@ -59,6 +60,9 @@ const renderizarRespuesta = (texto) => {
       </div>
     `
   );
+  return DOMPurify.sanitize(htmlWithButtons, {
+    ADD_ATTR: ['data-cv-file'],
+  });
 };
 
 // Setup buttons after content updates

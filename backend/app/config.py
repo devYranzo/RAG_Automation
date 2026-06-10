@@ -1,4 +1,5 @@
 import os
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -14,16 +15,16 @@ class Settings(BaseSettings):
     PDF_PATH: str = "/storage/CVs"
 
     """ Authentication """
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+    SECRET_KEY: str = Field(..., min_length=32)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 4
 
     """ Mail Service """
-    EMAIL_FROM: str = "no-reply@mail.enekoyranzo.dev"
+    EMAIL_FROM: str = "noreply@mail.enekoyranzo.dev"
     RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", "../.env")
         extra = "ignore"
 
 settings = Settings()

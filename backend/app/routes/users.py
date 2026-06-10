@@ -4,7 +4,7 @@ from database.db import get_db
 
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
-from core.security import require_admin, get_current_user
+from core.security import require_admin
 from services.user import user_service, user_orchestrator
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -45,7 +45,7 @@ async def update_user(
 async def delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     # PROTECCIÓN: No permitir auto-borrado
     if user_id == current_user.id:
