@@ -58,8 +58,17 @@ El flujo de trabajo sigue el estándar RAG para garantizar respuestas precisas:
    Crea un archivo `.env` en `backend/`:
 
    ```env
+   # AI Model
    GOOGLE_API_KEY=tu_api_key_aquí
+
+   # Database Configuration
    DATABASE_URL=postgresql+psycopg://user:password@db:5432/rag_db
+
+   # Authentication
+   SECRET_KEY = "secret-key-change-this"
+
+   # Mail Service
+   RESEND_API_KEY=tu_api_key_aquí
    ```
 
 3. **Desplegar:**
