@@ -1,26 +1,30 @@
-from services.email.templates.base_template import base_email_template
+import os
+from pathlib import Path
 
 
-def organization_welcome_email(org_name: str, admin_name: str):
-
-    content = f"""
-    <h3>Hola {admin_name},</h3>
-
-    <p>Tu organización <b>{org_name}</b> ha sido creada correctamente.</p>
-
-    <p>Desde ahora puedes:</p>
-    <ul>
-        <li>Crear usuarios</li>
-        <li>Subir CVs</li>
-        <li>Analizar talento con IA</li>
-        <li>Gestionar procesos de selección</li>
-    </ul>
-
-    <p>Ya puedes empezar a configurar tu equipo</p>
+def organization_welcome_email(org_name: str, admin_name: str, cta_url: str = "http://localhost"):
     """
+    Load and render the organization welcome email template from HTML.
 
-    return base_email_template(
-        content=content,
-        cta_url="http://localhost/",
-        cta_text="Ir a la app"
-    )
+    Args:
+        org_name: Name of the organization
+        admin_name: Name of the admin user
+        cta_url: Call-to-action URL (dashboard link)
+
+    Returns:
+        Rendered HTML email template with variables replaced
+    """
+    # Get the path to the HTML template
+    template_dir = Path(__file__).parent
+    template_path = template_dir / "organization_welcome.html"
+
+    # Read the HTML template
+    with open(template_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    # Replace placeholders with actual values
+    html_content = html_content.replace("{{ORG_NAME}}", org_name)
+    html_content = html_content.replace("{{ADMIN_NAME}}", admin_name)
+    html_content = html_content.replace("{{CTA_URL}}", cta_url)
+
+    return html_content
