@@ -25,3 +25,4 @@ class User(Base, HasOrganization):
     )
 
     organization = relationship("Organization", back_populates="users")
+    projects = relationship("HiringProjectMember", back_populates="users")

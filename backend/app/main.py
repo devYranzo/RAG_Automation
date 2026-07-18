@@ -9,10 +9,15 @@ from config import settings
 from routes import auth, index, search, system, file_manager, profile, users, analytics, email, organization
 from database.db import engine
 from database.seeders import run_seeders
+
 from models.user import User
 from models.profile import Profile
 from models.analytics import AnalyticsQuery
 from models.organization import Organization
+from models.hiring_projects import HiringProject
+from models.hiring_project_members import HiringProjectMember
+from models.hiring_project_documents import HiringProjectDocument
+from models.hiring_project_notes import HiringProjectNote
 from models.base import Base
 
 # Lifespan
@@ -51,7 +56,7 @@ async def validate_csrf_origin(request: Request, call_next):
         if not source:
             return JSONResponse(
                 status_code=403,
-                content={"detail": "Origen de la peticion no verificable."}
+                content={"detail": "Origen de la petición no verificable."}
             )
 
         parsed = urlparse(source)
@@ -60,7 +65,7 @@ async def validate_csrf_origin(request: Request, call_next):
         if request_origin not in settings.ALLOWED_ORIGINS:
             return JSONResponse(
                 status_code=403,
-                content={"detail": "Origen de la peticion no permitido."}
+                content={"detail": "Origen de la petición no permitido."}
             )
 
     return await call_next(request)
