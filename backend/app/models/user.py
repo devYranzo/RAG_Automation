@@ -25,4 +25,15 @@ class User(Base, HasOrganization):
     )
 
     organization = relationship("Organization", back_populates="users")
-    projects = relationship("HiringProjectMember", back_populates="users")
+
+    hiring_project_memberships = relationship(
+        "HiringProjectMember",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    added_documents = relationship(
+        "HiringProjectDocument",
+        foreign_keys="HiringProjectDocument.added_by",
+        back_populates="added_by_user"
+    )

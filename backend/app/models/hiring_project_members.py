@@ -42,4 +42,7 @@ class HiringProjectMember(Base):
         back_populates="members"
     )
 
-    user = relationship("User")
+    user = relationship(
+        "User",
+        back_populates="hiring_project_memberships"
+    )

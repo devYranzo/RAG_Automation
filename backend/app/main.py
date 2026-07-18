@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routes import auth, index, search, system, file_manager, profile, users, analytics, email, organization
+from routes import auth, index, search, system, file_manager, profile, users, analytics, email, organization, hiring_projects
 from database.db import engine
 from database.seeders import run_seeders
 
@@ -14,7 +14,7 @@ from models.user import User
 from models.profile import Profile
 from models.analytics import AnalyticsQuery
 from models.organization import Organization
-from models.hiring_projects import HiringProject
+from models.hiring_project import HiringProject
 from models.hiring_project_members import HiringProjectMember
 from models.hiring_project_documents import HiringProjectDocument
 from models.hiring_project_notes import HiringProjectNote
@@ -85,5 +85,7 @@ app.include_router(profile.router)
 app.include_router(users.router)
 
 app.include_router(analytics.router)
+
+app.include_router(hiring_projects.router)
 
 app.include_router(email.router)

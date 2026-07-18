@@ -81,7 +81,8 @@ class HiringProjectDocument(Base):
 
     added_by_user = relationship(
         "User",
-        foreign_keys=[added_by]
+        foreign_keys=[added_by],
+        back_populates="added_documents"
     )
 
     notes = relationship(
