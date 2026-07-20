@@ -56,6 +56,15 @@ const handlePasswordChangeSuccess = () => {
         </router-link>
 
         <router-link
+            to="/hiringProjects"
+            v-if="authStore.requireAtLeastRecruiter"
+            class="nav-link rounded-pill px-4"
+            :class="{ active: route.path === '/hiringProjects' }"
+        >
+          <i class="bi bi-clipboard2-data-fill me-1" aria-hidden="true"></i> Procesos
+        </router-link>
+
+        <router-link
           to="/filemanager"
           v-if="authStore.requireAtLeastRecruiter"
           class="nav-link rounded-pill px-4"
@@ -142,9 +151,5 @@ const handlePasswordChangeSuccess = () => {
   background-color: #0d6efd;
   color: white;
   box-shadow: 0 4px 10px rgba(13, 110, 253, 0.2);
-}
-
-.alert {
-  font-size: 0.95rem;
 }
 </style>

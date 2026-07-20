@@ -34,6 +34,18 @@ const routes = [
     meta: { requiresAuth: true, allowedRoles: ['admin', 'recruiter'] },
   },
   {
+    path: '/hiringProjects',
+    name: 'Hiring Projects',
+    component: () => import('@/views/HiringProjectsView.vue'),
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'recruiter'] },
+  },
+  {
+    path: '/hiringProjects/:projectId',
+    name: 'Hiring Project Detail',
+    component: () => import('@/views/HiringProjectDetailView.vue'),
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'recruiter'] },
+  },
+  {
     path: '/error/:code',
     name: 'Error',
     component: () => import('@/views/ErrorView.vue'),
