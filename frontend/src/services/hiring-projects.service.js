@@ -11,6 +11,31 @@ export default {
         return response.data;
     },
 
+    async createProject(payload) {
+        const response = await api.post('/projects/create', payload);
+        return response.data;
+    },
+
+    async updateProject(projectId, payload) {
+        const response = await api.patch(`/projects/${projectId}`, payload);
+        return response.data;
+    },
+
+    async deleteProject(projectId) {
+        const response = await api.delete(`/projects/${projectId}`);
+        return response.data;
+    },
+
+    async addMember(projectId, payload) {
+        const response = await api.post(`/projects/${projectId}/members`, payload);
+        return response.data;
+    },
+
+    async removeMember(projectId, memberId) {
+        const response = await api.delete(`/projects/${projectId}/members/${memberId}`);
+        return response.data;
+    },
+
     getPdfUrl(relativePath) {
         const encodedPath = relativePath
             .split('/')

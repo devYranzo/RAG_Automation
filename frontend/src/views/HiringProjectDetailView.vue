@@ -1,14 +1,72 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHiringProject } from '@/composables/useHiringProject.js';
 import hiringProjectsService from '@/services/hiring-projects.service.js';
+import userService from '@/services/user.service.js';
 
 const route = useRoute();
 const router = useRouter();
-const { project, fetchProject } = useHiringProject();
+const { project, fetchProject, deleteProject, addMember, removeMember, error } = useHiringProject();
 const isLoading = ref(false);
 const loadError = ref('');
+
+const isOwner = computed(() => project.value?.current_user_role === 'OWNER');
+
+// --- Añadir miembro ---
+const orgMembers = ref([]);
+const showAddMemberModal = ref(false);
+const selectedUserId = ref('');
+const selectedRole = ref('RECRUITER');
+
+const availableMembers = computed(() => {
+  const currentIds = new Set((project.value?.members || []).map(m => m.user_id));
+  return orgMembers.value.filter(u => !currentIds.has(u.id));
+});
+
+const openAddMemberModal = async () => {
+  if (orgMembers.value.length === 0) {
+    orgMembers.value = await userService.getOrgMembers();
+  }
+  selectedUserId.value = '';
+  selectedRole.value = 'RECRUITER';
+  showAddMemberModal.value = true;
+};
+
+const handleAddMember = async () => {
+  if (!selectedUserId.value) return;
+  try {
+    await addMember(route.params.projectId, {
+      user_id: Number(selectedUserId.value),
+      role: selectedRole.value,
+    });
+    showAddMemberModal.value = false;
+  } catch (e) {
+    // error ya en `error.value`
+  }
+};
+
+const handleRemoveMember = async (member) => {
+  const confirmed = confirm(`¿Quitar a ${member.username} de este proyecto?`);
+  if (!confirmed) return;
+  try {
+    await removeMember(route.params.projectId, member.id);
+  } catch (e) {
+    alert(error.value || 'No se pudo eliminar al miembro.');
+  }
+};
+
+// --- Borrar proyecto ---
+const handleDeleteProject = async () => {
+  const confirmed = confirm('¿Seguro que quieres eliminar este proyecto? Esta acción no se puede deshacer.');
+  if (!confirmed) return;
+  try {
+    await deleteProject(route.params.projectId);
+    router.push({ name: 'Hiring Projects' });
+  } catch (e) {
+    alert(error.value || 'No se pudo eliminar el proyecto.');
+  }
+};
 
 const documentStatusLabel = (status) => ({
   PENDING: 'Pendiente',
@@ -99,16 +157,85 @@ watch(
         <div class="col-lg-5">
           <section class="card shadow-sm border-0 mb-4">
             <div class="card-body">
-              <h3 class="h5 fw-bold mb-3">Equipo</h3>
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="h5 fw-bold mb-0">Equipo</h3>
+                <button v-if="isOwner" class="btn btn-sm btn-outline-primary" @click="openAddMemberModal">
+                  <i class="bi bi-person-plus me-1"></i> Añadir
+                </button>
+              </div>
+
               <div v-if="!project.members.length" class="text-muted">No hay miembros asignados.</div>
               <ul v-else class="list-group list-group-flush">
-                <li v-for="member in project.members" :key="member.id" class="list-group-item px-0">
-                  <div class="fw-semibold">{{ member.username }}</div>
-                  <small class="text-muted">{{ member.email }} · {{ member.role }}</small>
+                <li
+                    v-for="member in project.members"
+                    :key="member.id"
+                    class="list-group-item px-0 d-flex justify-content-between align-items-center"
+                >
+                  <div>
+                    <div class="fw-semibold">
+                      {{ member.username }}
+                      <span v-if="member.role === 'OWNER'" class="badge bg-primary-subtle text-primary ms-1">Owner</span>
+                    </div>
+                    <small class="text-muted">{{ member.email }}</small>
+                  </div>
+
+                  <button
+                      v-if="isOwner || member.role !== 'OWNER'"
+                      class="btn btn-sm btn-outline-danger"
+                      @click="handleRemoveMember(member)"
+                      title="Quitar del proyecto"
+                  >
+                    <i class="bi bi-x-lg"></i>
+                  </button>
                 </li>
               </ul>
             </div>
           </section>
+
+          <!-- Botón eliminar proyecto, solo owner -->
+          <button v-if="isOwner" class="btn btn-outline-danger btn-sm mt-2" @click="handleDeleteProject">
+            <i class="bi bi-trash me-1"></i> Eliminar proyecto
+          </button>
+
+          <!-- Modal añadir miembro -->
+          <div
+              v-if="showAddMemberModal"
+              class="modal fade show d-block"
+              style="background-color: rgba(0,0,0,0.5)"
+          >
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-0">
+                  <h5 class="fw-bold mb-0">Añadir miembro</h5>
+                  <button class="btn-close" @click="showAddMemberModal = false"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Usuario</label>
+                    <select v-model="selectedUserId" class="form-select">
+                      <option value="" disabled>Selecciona un usuario</option>
+                      <option v-for="u in availableMembers" :key="u.id" :value="u.id">
+                        {{ u.first_name }} {{ u.last_name }} — {{ u.email }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Rol</label>
+                    <select v-model="selectedRole" class="form-select">
+                      <option value="RECRUITER">Recruiter</option>
+                      <option value="OWNER">Owner</option>
+                    </select>
+                  </div>
+                  <div v-if="error" class="alert alert-danger py-2 small">{{ error }}</div>
+                  <div class="d-grid">
+                    <button class="btn btn-primary" :disabled="!selectedUserId" @click="handleAddMember">
+                      Añadir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <section class="card shadow-sm border-0">
             <div class="card-body">

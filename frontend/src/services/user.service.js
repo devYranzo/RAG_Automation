@@ -22,4 +22,9 @@ export default {
     const response = await api.delete(`/users/delete/${userId}`);
     return response.data;
   },
+
+  async getOrgMembers() {
+    const response = await api.get('/users/org-members');
+    return response.data;
+  },
 };
