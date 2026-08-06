@@ -26,13 +26,18 @@ export default {
         return response.data;
     },
 
-    async addMember(projectId, payload) {
-        const response = await api.post(`/projects/${projectId}/members`, payload);
+    async addMember(projectId, userId) {
+        const response = await api.post(`/projects/${projectId}/members`, { user_id: userId });
         return response.data;
     },
 
     async removeMember(projectId, memberId) {
         const response = await api.delete(`/projects/${projectId}/members/${memberId}`);
+        return response.data;
+    },
+
+    async addDocument(projectId, payload) {
+        const response = await api.post(`/projects/${projectId}/documents`, payload);
         return response.data;
     },
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHiringProject } from '@/composables/useHiringProject.js';
 import hiringProjectsService from '@/services/hiring-projects.service.js';
@@ -17,32 +17,25 @@ const isOwner = computed(() => project.value?.current_user_role === 'OWNER');
 const orgMembers = ref([]);
 const showAddMemberModal = ref(false);
 const selectedUserId = ref('');
-const selectedRole = ref('RECRUITER');
 
 const availableMembers = computed(() => {
-  const currentIds = new Set((project.value?.members || []).map(m => m.user_id));
-  return orgMembers.value.filter(u => !currentIds.has(u.id));
+  const currentIds = new Set((project.value?.members || []).map((m) => m.user_id));
+  return orgMembers.value.filter((u) => !currentIds.has(u.id));
 });
 
 const openAddMemberModal = async () => {
-  if (orgMembers.value.length === 0) {
-    orgMembers.value = await userService.getOrgMembers();
-  }
+  orgMembers.value = await userService.getOrgMembers();
   selectedUserId.value = '';
-  selectedRole.value = 'RECRUITER';
   showAddMemberModal.value = true;
 };
 
 const handleAddMember = async () => {
   if (!selectedUserId.value) return;
   try {
-    await addMember(route.params.projectId, {
-      user_id: Number(selectedUserId.value),
-      role: selectedRole.value,
-    });
+    await addMember(route.params.projectId, Number(selectedUserId.value));
     showAddMemberModal.value = false;
   } catch (e) {
-    // error ya en `error.value`
+    // el error ya queda en `error.value`, se muestra en el modal
   }
 };
 
@@ -87,7 +80,6 @@ const getDocumentUrl = (relativePath) => hiringProjectsService.getPdfUrl(relativ
 const loadProject = async (projectId) => {
   isLoading.value = true;
   loadError.value = '';
-
   try {
     await fetchProject(projectId);
   } catch {
@@ -98,9 +90,9 @@ const loadProject = async (projectId) => {
 };
 
 watch(
-  () => route.params.projectId,
-  (projectId) => loadProject(projectId),
-  { immediate: true },
+    () => route.params.projectId,
+    (projectId) => loadProject(projectId),
+    { immediate: true },
 );
 </script>
 
@@ -192,17 +184,12 @@ watch(
             </div>
           </section>
 
-          <!-- Botón eliminar proyecto, solo owner -->
           <button v-if="isOwner" class="btn btn-outline-danger btn-sm mt-2" @click="handleDeleteProject">
             <i class="bi bi-trash me-1"></i> Eliminar proyecto
           </button>
 
-          <!-- Modal añadir miembro -->
-          <div
-              v-if="showAddMemberModal"
-              class="modal fade show d-block"
-              style="background-color: rgba(0,0,0,0.5)"
-          >
+          <!-- Modal añadir miembro: sin selector de rol, siempre RECRUITER -->
+          <div v-if="showAddMemberModal" class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5)">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content border-0 shadow rounded-4">
                 <div class="modal-header border-0">
@@ -218,13 +205,7 @@ watch(
                         {{ u.first_name }} {{ u.last_name }} — {{ u.email }}
                       </option>
                     </select>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label small fw-bold">Rol</label>
-                    <select v-model="selectedRole" class="form-select">
-                      <option value="RECRUITER">Recruiter</option>
-                      <option value="OWNER">Owner</option>
-                    </select>
+                    <small class="text-muted d-block mt-1">Se añadirá con el rol de Recruiter.</small>
                   </div>
                   <div v-if="error" class="alert alert-danger py-2 small">{{ error }}</div>
                   <div class="d-grid">

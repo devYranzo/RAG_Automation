@@ -29,8 +29,7 @@ export function useHiringProject() {
         loading.value = true;
         error.value = null;
         try {
-            const created = await hiringProjectsService.createProject(payload);
-            return created;
+            return await hiringProjectsService.createProject(payload);
         } catch (err) {
             error.value = err.response?.data?.detail || 'No se pudo crear el proyecto.';
             throw err;
@@ -40,8 +39,10 @@ export function useHiringProject() {
     };
 
     const updateProject = async (projectId, payload) => {
+        error.value = null;
         try {
-            project.value = await hiringProjectsService.updateProject(projectId, payload);
+            await hiringProjectsService.updateProject(projectId, payload);
+            await fetchProject(projectId);
         } catch (err) {
             error.value = err.response?.data?.detail || 'No se pudo actualizar el proyecto.';
             throw err;
@@ -49,6 +50,7 @@ export function useHiringProject() {
     };
 
     const deleteProject = async (projectId) => {
+        error.value = null;
         try {
             await hiringProjectsService.deleteProject(projectId);
         } catch (err) {
@@ -57,9 +59,13 @@ export function useHiringProject() {
         }
     };
 
-    const addMember = async (projectId, payload) => {
+    // Fix reactividad: refetch explícito tras la mutación en vez de fiarnos
+    // del objeto devuelto por el propio POST/DELETE.
+    const addMember = async (projectId, userId) => {
+        error.value = null;
         try {
-            project.value = await hiringProjectsService.addMember(projectId, payload);
+            await hiringProjectsService.addMember(projectId, userId);
+            await fetchProject(projectId);
         } catch (err) {
             error.value = err.response?.data?.detail || 'No se pudo añadir al miembro.';
             throw err;
@@ -67,8 +73,10 @@ export function useHiringProject() {
     };
 
     const removeMember = async (projectId, memberId) => {
+        error.value = null;
         try {
-            project.value = await hiringProjectsService.removeMember(projectId, memberId);
+            await hiringProjectsService.removeMember(projectId, memberId);
+            await fetchProject(projectId);
         } catch (err) {
             error.value = err.response?.data?.detail || 'No se pudo eliminar al miembro.';
             throw err;
