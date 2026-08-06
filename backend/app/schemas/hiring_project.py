@@ -71,5 +71,10 @@ class HiringProjectUpdate(BaseModel):
 
 
 class HiringProjectMemberCreate(BaseModel):
+    """El rol siempre se fuerza a RECRUITER en el servicio; no es configurable aquí."""
     user_id: int
-    role: Literal["OWNER", "RECRUITER"] = "RECRUITER"
+
+
+class HiringProjectDocumentCreate(BaseModel):
+    relative_path: str = Field(..., min_length=1, max_length=500)
+    filename: Optional[str] = None

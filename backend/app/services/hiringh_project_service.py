@@ -1,5 +1,8 @@
+import os
+
 from fastapi import HTTPException
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -13,6 +16,7 @@ from schemas.hiring_project import (
     HiringProjectCreate,
     HiringProjectUpdate,
     HiringProjectMemberCreate,
+    HiringProjectDocumentCreate,
 )
 
 # PRIVATE
@@ -247,10 +251,11 @@ async def add_member(
     if any(m.user_id == target_user.id for m in project.members):
         raise HTTPException(status_code=400, detail="El usuario ya es miembro de este proyecto.")
 
+    # El rol siempre se fuerza a RECRUITER; solo el creador del proyecto es OWNER.
     db.add(HiringProjectMember(
         project_id=project.id,
         user_id=target_user.id,
-        role=payload.role
+        role="RECRUITER"
     ))
     await db.commit()
 
@@ -286,5 +291,43 @@ async def remove_member(
 
     await db.delete(member)
     await db.commit()
+
+    return await get_project(db, current_user, project_id)
+
+
+# ==========================
+# DOCUMENTS (candidatos añadidos desde el buscador)
+# ==========================
+
+async def add_document(
+    db: AsyncSession,
+    current_user: User,
+    project_id: int,
+    payload: HiringProjectDocumentCreate
+):
+    # Basta con ser miembro del proyecto para añadir candidatos, no hace falta ser owner.
+    project = await _get_project_or_403(db, current_user, project_id)
+
+    filename = payload.filename or os.path.basename(payload.relative_path)
+    folder = os.path.dirname(payload.relative_path) or "General"
+
+    document = HiringProjectDocument(
+        project_id=project.id,
+        relative_path=payload.relative_path,
+        filename=filename,
+        folder=folder,
+        added_by=current_user.id,
+        status="PENDING"
+    )
+    db.add(document)
+
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Este candidato ya está añadido a este proyecto."
+        )
 
     return await get_project(db, current_user, project_id)

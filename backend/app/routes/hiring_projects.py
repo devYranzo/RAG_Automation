@@ -8,6 +8,7 @@ from schemas.hiring_project import (
     HiringProjectCreate,
     HiringProjectUpdate,
     HiringProjectMemberCreate,
+    HiringProjectDocumentCreate,
 )
 
 from services.hiringh_project_service import (
@@ -18,6 +19,7 @@ from services.hiringh_project_service import (
     delete_project,
     add_member,
     remove_member,
+    add_document,
 )
 from core.security import get_current_user, require_recruiter
 from models.user import User
@@ -116,3 +118,17 @@ async def remove_project_member(
     current_user: User = Depends(get_current_user),
 ):
     return await remove_member(db, current_user, project_id, member_id)
+
+
+@router.post(
+    '/{project_id}/documents',
+    response_model=HiringProjectDetailResponse,
+    dependencies=[Depends(require_recruiter)]
+)
+async def add_project_document(
+    project_id: int,
+    payload: HiringProjectDocumentCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await add_document(db, current_user, project_id, payload)
