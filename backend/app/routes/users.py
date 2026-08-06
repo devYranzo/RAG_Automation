@@ -4,8 +4,9 @@ from database.db import get_db
 
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
-from core.security import require_admin
 from services.user import user_service, user_orchestrator
+
+from core.security import require_admin, require_recruiter
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -59,3 +60,10 @@ async def delete_user(
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     return {"message": "Usuario eliminado correctamente"}
+
+# 5. Listar los usuarios de la organizacion como recruiter
+@router.get("/org-members", dependencies=[Depends(require_recruiter)])
+async def get_org_members(
+    db: AsyncSession = Depends(get_db),
+):
+    return await user_service.get_org_members_list(db)

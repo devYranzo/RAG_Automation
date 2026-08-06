@@ -121,3 +121,21 @@ async def delete_user(db: AsyncSession, user_id: int):
     await db.delete(db_user)
     await db.commit()
     return True
+
+async def get_org_members_list(db: AsyncSession):
+    query = (
+        select(User)
+        .options(joinedload(User.profile))
+    )
+    result = await db.execute(query)
+    users = result.scalars().all()
+
+    return [
+        {
+            "id": user.id,
+            "first_name": user.profile.first_name if user.profile else "Unknown",
+            "last_name": user.profile.last_name if user.profile else "Unknown",
+            "email": user.email,
+        }
+        for user in users
+    ]
